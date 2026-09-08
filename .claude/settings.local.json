@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(npm run build 2>&1)",
+      "Bash(netstat -ano)",
+      "Bash(npm run *)"
+    ]
+  }
+}

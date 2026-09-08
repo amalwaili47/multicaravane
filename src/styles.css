@@ -1,0 +1,376 @@
+:root {
+  --ivory: #f8f1e7;
+  --paper: #fcf7ef;
+  --ink: #171a19;
+  --olive: #56683e;
+  --olive-dark: #3f532f;
+  --blue: #2a76a8;
+  --blue-dark: #1f5f8b;
+  --navy: #10314f;
+  --navy-deep: #081f36;
+  --radius-button: 10px;
+  --sand: #c9a873;
+  --maroon: #6f2632;
+  --line: rgba(161, 125, 74, .58);
+  --font-display: 'Libre Caslon Display', Georgia, serif;
+  --font-accent: 'Quintessential', Georgia, serif;
+  --font-body: 'BJCree', Georgia, serif;
+  --font-ui: 'Anaheim', system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; color: var(--ink); background: var(--ivory); font-family: var(--font-body); font-weight: 400; font-size: 17px; line-height: 1.65; -webkit-font-smoothing: antialiased; }
+/* Rule 7 - form controls; the 16px floor keeps iOS from zooming on focus. */
+input, textarea, select { font-family: var(--font-ui); font-weight: 400; font-size: 16px; }
+button, a { -webkit-tap-highlight-color: transparent; }
+a { color: inherit; }
+svg { display: block; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.site-shell { overflow: hidden; background: var(--ivory); }
+
+.site-header {
+  height: 104px;
+  padding: 0 clamp(36px, 5vw, 78px);
+  display: grid;
+  grid-template-columns: 250px 1fr 160px;
+  align-items: center;
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 20;
+}
+.logo { display: flex; align-items: center; width: fit-content; text-decoration: none; color: var(--olive-dark); }
+.logo img { height: 58px; width: auto; max-width: 100%; display: block; }
+.main-nav { justify-self: center; display: flex; align-items: center; gap: clamp(34px, 4.2vw, 68px); }
+.main-nav a { position: relative; text-decoration: none; font-family: var(--font-ui); font-weight: 600; text-transform: uppercase; letter-spacing: .2em; font-size: .8rem; }
+.main-nav a::after { content: ""; position: absolute; height: 1px; left: 0; right: .23em; bottom: -8px; background: var(--olive); transform: scaleX(0); transform-origin: right; transition: transform .4s ease; }
+.main-nav a:hover::after { transform: scaleX(1); transform-origin: left; }
+/* Language selector replaces the old Contact button in the header. */
+.lang-menu { position: relative; justify-self: end; }
+.lang-toggle { display: flex; align-items: center; gap: 9px; min-width: 116px; padding: 14px 16px; border-radius: var(--radius-button); border: 1px solid rgba(67,82,48,.65); background: transparent; color: var(--olive-dark); text-transform: uppercase; font-family: var(--font-ui); font-weight: 500; letter-spacing: .08em; font-size: .9rem; cursor: pointer; transition: color .3s, background .3s, border-color .3s; }
+.lang-toggle svg { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.4; }
+.lang-toggle i { width: 7px; height: 7px; margin-left: auto; border-right: 1.4px solid currentColor; border-bottom: 1.4px solid currentColor; transform: translateY(-2px) rotate(45deg); transition: transform .3s; }
+.lang-toggle:hover { background: var(--olive-dark); color: white; }
+.lang-menu.is-open .lang-toggle { background: var(--olive-dark); color: white; }
+.lang-menu.is-open .lang-toggle i { transform: translateY(1px) rotate(225deg); }
+.lang-list { position: absolute; z-index: 30; top: calc(100% + 8px); right: 0; min-width: 100%; margin: 0; padding: 6px; border-radius: calc(var(--radius-button) + 6px); list-style: none; background: var(--paper); border: 1px solid rgba(67,82,48,.28); box-shadow: 0 18px 38px rgba(69,55,35,.16); opacity: 0; visibility: hidden; transform: translateY(-6px); transition: opacity .25s, transform .3s, visibility .25s; }
+.lang-menu.is-open .lang-list { opacity: 1; visibility: visible; transform: translateY(0); }
+.lang-list button { display: flex; align-items: center; gap: 11px; width: 100%; padding: 11px 13px; border-radius: var(--radius-button); border: 0; background: transparent; color: var(--olive-dark); font-family: var(--font-ui); font-weight: 500; letter-spacing: .08em; font-size: .9rem; text-align: left; white-space: nowrap; cursor: pointer; transition: background .25s, color .25s; }
+.lang-list button span { font-family: var(--font-ui); font-weight: 500; letter-spacing: .08em; font-size: .8rem; opacity: .62; }
+.lang-list button:hover { background: rgba(86,104,62,.1); }
+.lang-list [aria-selected="true"] button { background: var(--olive); color: white; }
+.lang-list [aria-selected="true"] button span { opacity: .8; }
+.menu-toggle { display: none; }
+
+.hero {
+  min-height: 700px;
+  height: min(760px, 100svh);
+  display: block;
+  position: relative;
+  isolation: isolate;
+  background: #faf3e9 url("/assets/sand-hero-background.png") center / 100% 100% no-repeat;
+}
+/* Divider where the hero meets the experiences section: a soft contact shadow
+   fading upward, plus a hairline that fades out at both edges. */
+.hero::before {
+  content: "";
+  position: absolute;
+  z-index: 4;
+  inset: auto 0 0;
+  height: 130px;
+  pointer-events: none;
+  background-repeat: no-repeat;
+  background-image:
+    linear-gradient(90deg, rgba(120,98,64,0) 0%, rgba(120,98,64,.38) 18%, rgba(120,98,64,.38) 82%, rgba(120,98,64,0) 100%),
+    linear-gradient(180deg, rgba(120,98,64,0) 0%, rgba(120,98,64,.07) 55%, rgba(120,98,64,.20) 100%);
+  background-size: 100% 1px, 100% 100%;
+  background-position: bottom left, top left;
+}
+.hero::after { content: ""; position: absolute; z-index: -1; inset: 0 50% 0 0; background: linear-gradient(90deg, rgba(255,251,245,.22), rgba(255,251,245,.04)); pointer-events: none; }
+.hero-copy { width: 51%; padding: clamp(188px, 25vh, 214px) 24px 32px clamp(48px, 5vw, 82px); position: relative; z-index: 3; }
+.eyebrow { margin: 0 0 21px; color: var(--olive); font-family: var(--font-ui); font-weight: 600; text-transform: uppercase; letter-spacing: .2em; font-size: .8rem; }
+.hero h1 { margin: 0; max-width: 15ch; font-family: var(--font-display); font-weight: 400; text-transform: uppercase; letter-spacing: .02em; line-height: 1.05; font-size: 4.2rem; text-wrap: balance; }
+.ornament { position: relative; width: 178px; height: 14px; margin: 24px 0 17px; }
+.ornament::before, .ornament::after { content: ""; position: absolute; top: 7px; width: calc(50% - 7px); height: 1px; background: var(--line); }
+.ornament::before { left: 0; }.ornament::after { right: 0; }
+.ornament i { position: absolute; left: 50%; top: 3px; width: 8px; height: 8px; border: 1px solid #879064; transform: translateX(-50%) rotate(45deg); }
+.hero-text { max-width: 470px; margin: 0 0 26px; font-family: var(--font-body); font-weight: 400; font-size: 17px; line-height: 1.65; }
+.hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
+.primary-button { display: inline-flex; min-height: 48px; padding: 0 26px; border-radius: var(--radius-button); align-items: center; justify-content: center; background: var(--olive); color: white; text-decoration: none; font-family: var(--font-ui); font-weight: 600; text-transform: uppercase; letter-spacing: .2em; font-size: .8rem; box-shadow: 0 10px 28px rgba(63,83,47,.18); transition: transform .35s, box-shadow .35s, background .35s; }
+.primary-button:hover { transform: translateY(-3px); box-shadow: 0 16px 30px rgba(63,83,47,.28); background: var(--olive-dark); }
+/* Hero's first button only; other buttons keep the olive. */
+.hero .primary-button { background: #81B0B2; color: white; box-shadow: 0 10px 28px rgba(129,176,178,.34); }
+.hero .primary-button:hover { background: #6C9A9C; box-shadow: 0 16px 30px rgba(129,176,178,.46); }
+.secondary-button { display: inline-flex; min-height: 48px; padding: 0 22px; border-radius: var(--radius-button); align-items: center; justify-content: center; gap: 11px; border: 1px solid rgba(67,82,48,.6); color: var(--olive-dark); background: transparent; text-decoration: none; font-family: var(--font-ui); font-weight: 600; text-transform: uppercase; letter-spacing: .2em; font-size: .8rem; transition: background .35s, color .35s, border-color .35s, transform .35s; }
+.secondary-button svg { width: 15px; height: 15px; flex: none; transition: transform .35s; }
+.secondary-button:hover { background: var(--olive-dark); border-color: var(--olive-dark); color: white; transform: translateY(-3px); }
+.secondary-button:hover svg { transform: translate(3px, -3px); }
+.round-button { width: 42px; height: 42px; border: 1px solid var(--olive); border-radius: 50%; display: grid; place-items: center; color: var(--olive); transition: color .35s, background .35s, transform .35s; }
+.round-button svg { width: 19px; }.round-button:hover { color: white; background: var(--olive); transform: translateX(5px); }
+.hero-visual { position: absolute; z-index: 2; inset: 10px 0 10px auto; width: 64%; min-width: 0; }
+.hero-clip-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+.hero-frame { position: absolute; z-index: 3; inset: 0; overflow: hidden; clip-path: url(#hero-organic-clip); }
+.hero-frame::after { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, rgba(16,70,78,.05), transparent 40%); }
+.hero-frame img {
+  display: block;
+  width: 101%;
+  height: 100%;
+  margin-left: auto;
+  object-fit: cover;
+  object-position: center;
+  scale: 1.112 1;
+  transform-origin: right center;
+  transition: cubic-bezier(0.01, 0.02, 0.9, 0.01);
+  transition-property: transform;
+  transition-duration: 1.4s;
+}
+.hero:hover .hero-frame img { transform: scale(1.025); }
+.hero-visual::before { content: ""; position: absolute; z-index: 1; inset: 0; background: rgba(101,113,69,.58); clip-path: url(#hero-organic-clip); transform: translateX(-8px); }
+.hero-visual::after { content: ""; position: absolute; z-index: 2; inset: 0; background: rgba(250,243,233,.98); clip-path: url(#hero-organic-clip); transform: translateX(-6px); }
+.scroll-cue { position: absolute; display: flex; gap: 12px; align-items: center; bottom: 23px; right: 44px; z-index: 5; transform: rotate(90deg) translateX(100%); transform-origin: right bottom; }
+.scroll-cue span { font-family: var(--font-ui); font-weight: 600; text-transform: uppercase; font-size: 8px; letter-spacing: .28em; color: rgba(23,26,25,.55); }
+.scroll-cue i { width: 42px; height: 1px; background: rgba(23,26,25,.4); }
+
+.experiences { position: relative; padding: 60px clamp(42px, 5vw, 78px) 88px; min-height: 760px; background: linear-gradient(180deg, #fffaf4 0%, #f5ebde 100%); }
+.experiences::before { content: ""; position: absolute; inset: 0; background: url("/assets/activities-background.png") center bottom / 100% 100% no-repeat; pointer-events: none; }
+.experiences::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255,250,243,.32) 0%, rgba(255,250,243,.12) 48%, rgba(248,239,227,.22) 100%); pointer-events: none; }
+.section-heading { text-align: center; max-width: 680px; margin: 0 auto 38px; position: relative; z-index: 2; }
+.section-heading .eyebrow { margin-bottom: 10px; }
+.section-heading h2, .destination-strip h2 { margin: 0; font-family: var(--font-display); font-weight: 400; text-transform: uppercase; letter-spacing: .02em; line-height: 1.05; font-size: clamp(2rem, 4vw, 3.4rem); }
+.ornament.centered { width: 142px; margin: 15px auto 12px; }
+.section-heading > p:last-child { margin: 0; font-family: var(--font-body); font-weight: 400; font-size: 17px; line-height: 1.65; }
+.activity-item { display: flex; flex-direction: column; }
+.activity-grid { --grid-gap: clamp(22px, 2.7vw, 42px); --grid-cols: 3; display: grid; grid-template-columns: repeat(3, 1fr); align-items: start; gap: var(--grid-gap); max-width: 1420px; margin: 0 auto; position: relative; z-index: 2; }
+
+/* Card front. The description is not here - it lives in .activity-detail, which the
+   grid shows beside the card once one is picked. */
+.activity-card { --cue-size: clamp(28px, 2.2vw, 32px); --cue-gap: 8px; --cue-inset: clamp(18px, 1.9vw, 28px); --card-radius: clamp(34px, 3.4vw, 52px) clamp(34px, 3.4vw, 52px) clamp(34px, 3.4vw, 52px) clamp(76px, 8vw, 122px); position: relative; aspect-ratio: 1.5 / 1; overflow: hidden; isolation: isolate; background: #f4f0e8; border-radius: var(--card-radius); box-shadow: 0 18px 44px rgba(69,55,35,.09); transition: translate .7s cubic-bezier(.16,1,.3,1), box-shadow .7s cubic-bezier(.16,1,.3,1); }
+.activity-card::before { content: ""; position: absolute; z-index: 1; inset: 0; background: linear-gradient(108deg, rgba(244,240,232,.95) 0%, rgba(244,240,232,.78) 30%, rgba(244,240,232,.32) 56%, rgba(244,240,232,0) 78%), linear-gradient(0deg, rgba(244,240,232,.97) 0%, rgba(244,240,232,.9) 14%, rgba(244,240,232,.62) 30%, rgba(244,240,232,0) 52%); transition: opacity .55s; pointer-events: none; }
+.activity-card::after { content: ""; position: absolute; z-index: 5; inset: 12px; border: 1px solid rgba(255,255,255,.42); border-radius: inherit; opacity: 0; transform: scale(.97); transition: opacity .45s, transform .65s cubic-bezier(.16,1,.3,1); pointer-events: none; }
+.activity-card > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 1.2s cubic-bezier(.16,1,.3,1), filter .7s; }
+.activity-item:hover .activity-card { translate: 0 -9px; box-shadow: 0 28px 60px rgba(69,55,35,.16); }
+.activity-item:hover .activity-card::before { opacity: .9; }
+.activity-item:hover .activity-card::after { opacity: 1; transform: scale(1); }
+.activity-item:hover .activity-card > img { transform: scale(1.045); filter: saturate(1.05); }
+
+/* Full-card hit target. It sits under the card text (which is click-through)
+   and under the WhatsApp link, so the whole card toggles except that button. */
+.activity-toggle { position: absolute; z-index: 2; inset: 0; width: 100%; padding: 0; border: 0; background: transparent; cursor: pointer; touch-action: manipulation; border-radius: inherit; }
+.activity-toggle:focus-visible { outline: 2px solid var(--olive); outline-offset: -6px; }
+.activity-card-content { position: absolute; z-index: 3; inset: 0; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 0; padding: clamp(20px, 2.2vw, 34px) clamp(18px, 1.9vw, 28px) clamp(18px, 1.9vw, 28px) clamp(20px, 2.3vw, 36px); text-align: left; pointer-events: none; }
+.activity-card-content h3 { max-width: 74%; margin: 0; color: var(--ink); font-family: var(--font-display); font-weight: 400; text-transform: none; font-size: clamp(1.15rem, 1.55vw, 1.6rem); line-height: 1.15; }
+/* Tagline: bottom-centre, full width, sitting just above the CTA.
+   margin-top:auto pushes the pair to the bottom of the card. */
+.activity-tagline { order: 1; width: 100%; margin: auto 0 calc(var(--cue-size) + 10px); align-self: stretch; text-align: center; color: var(--olive-dark); font-family: var(--font-accent); font-weight: 400; font-size: clamp(.8rem, .95vw, 1rem); line-height: 1.3; }
+/* CTA: full-width pill along the bottom edge. */
+.activity-card-content a { position: absolute; z-index: 4; right: calc(var(--cue-inset) + var(--cue-size) + var(--cue-gap)); bottom: var(--cue-inset); pointer-events: auto; display: inline-flex; align-items: center; justify-content: center; min-height: var(--cue-size); padding: 0 clamp(11px, .95vw, 16px); border-radius: 999px; background: #81B0B2; color: white; text-decoration: none; font-family: var(--font-ui); font-weight: 600; text-transform: uppercase; letter-spacing: .12em; font-size: clamp(.6rem, .7vw, .75rem); white-space: nowrap; box-shadow: 0 8px 22px rgba(129,176,178,.34); transition: background .35s, transform .4s, box-shadow .4s; }
+.activity-card-content a:hover { background: #6C9A9C; transform: translateY(-2px); box-shadow: 0 12px 26px rgba(129,176,178,.46); }
+
+/* Chevron in the card's deep corner: points down when closed, up when open. */
+.activity-cue { position: absolute; z-index: 4; right: var(--cue-inset); bottom: var(--cue-inset); width: var(--cue-size); height: var(--cue-size); display: grid; place-items: center; border: 1px solid rgba(67,82,48,.55); border-radius: 50%; color: var(--olive-dark); background: rgba(252,247,239,.72); pointer-events: none; transition: background .35s, color .35s, border-color .35s; }
+.activity-cue svg { width: 14px; transform: rotate(90deg); transition: transform .5s cubic-bezier(.16,1,.3,1); }
+.activity-item[data-open] .activity-cue svg { transform: rotate(-90deg); }
+.activity-item:hover .activity-cue,
+.activity-item:focus-within .activity-cue,
+.activity-item[data-open] .activity-cue { background: var(--navy); border-color: var(--navy); color: white; }
+
+/* Detail view. Picking a card drops the grid to two columns: the chosen card takes
+   the left one, its description fades in on the right. The other cards are pulled out
+   of flow (so the card can move left) and held in place by a FLIP transform while they
+   fade - see the useLayoutEffect in ActivityGrid. */
+.activity-grid[data-detail] { grid-template-columns: minmax(0, 1.02fr) minmax(0, 1fr); }
+.activity-grid[data-detail] .activity-item[data-open] { grid-area: 1 / 1; }
+/* Both selectors must out-specify [data-reveal][data-visible] { opacity: 1 }, which sits
+   further down the sheet and would otherwise keep the parked cards fully visible. */
+.activity-grid[data-detail] .activity-item[data-hidden] { position: absolute; top: 0; left: 0; width: calc((100% - var(--grid-gap) * (var(--grid-cols) - 1)) / var(--grid-cols)); opacity: 0; pointer-events: none; transition: opacity .26s ease; }
+
+/* The panel now carries the eyebrow, title and CTA, so the open card drops its own
+   overlay rather than repeating them, and sheds the scrim that existed to make that
+   text readable. The photo alone is the focal point. */
+.activity-grid[data-detail] .activity-item[data-open] .activity-card-content { opacity: 0; pointer-events: none; transition: opacity .3s ease; }
+.activity-grid[data-detail] .activity-item[data-open] .activity-card::before { opacity: 0; }
+.activity-grid[data-detail] .activity-item[data-open]:hover .activity-card { translate: none; }
+
+.activity-detail { grid-area: 1 / 2; align-self: center; max-width: 46rem; padding: clamp(4px, .6vw, 14px) 0 0 clamp(4px, 1.2vw, 22px); text-align: left; animation: activity-detail-in .62s cubic-bezier(.16,1,.3,1) .3s both; }
+.activity-detail-eyebrow { margin: 0 0 12px; color: var(--olive); font-family: var(--font-ui); font-weight: 600; text-transform: uppercase; letter-spacing: .2em; font-size: .8rem; }
+.activity-detail h3 { margin: 0 0 18px; color: var(--ink); font-family: var(--font-display); font-weight: 400; letter-spacing: .02em; line-height: 1.1; font-size: clamp(1.7rem, 2.8vw, 2.6rem); }
+.activity-text { margin: 0; max-width: 52ch; text-align: left; font-family: var(--font-body); font-weight: 400; font-size: 17px; line-height: 1.65; color: var(--ink); }
+.activity-detail .primary-button { background: #81B0B2; box-shadow: 0 10px 28px rgba(129,176,178,.34); }
+/* Any engaged state - pointer over it, pressed, or keyboard-selected - turns navy.
+   :active and :focus-visible alone were never really seen: the press is released at
+   once and the link opens in a new tab, so it never holds focus. */
+.activity-detail .primary-button:hover,
+.activity-detail .primary-button:focus,
+.activity-detail .primary-button:focus-visible,
+.activity-detail .primary-button:active { background: var(--navy); box-shadow: 0 16px 30px rgba(16,49,79,.42); outline: none; }
+.activity-detail .primary-button:active { background: var(--navy-deep); }
+.activity-detail-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; margin-top: clamp(22px, 2.4vw, 34px); }
+.activity-back { display: inline-flex; align-items: center; gap: 9px; min-height: 48px; padding: 0 18px; border-radius: var(--radius-button); border: 1px solid rgba(67,82,48,.6); background: transparent; color: var(--olive-dark); font-family: var(--font-ui); font-weight: 600; text-transform: uppercase; letter-spacing: .2em; font-size: .8rem; cursor: pointer; transition: background .35s, color .35s, border-color .35s; }
+.activity-back i { font-style: normal; font-size: 1.05em; line-height: 1; transform: translateY(-1px); }
+.activity-back:hover { background: var(--navy); border-color: var(--navy); color: white; }
+.activity-back:focus-visible,
+.activity-back:active { background: var(--navy-deep); border-color: var(--navy-deep); color: white; outline: none; }
+
+@keyframes activity-detail-in { from { opacity: 0; transform: translateX(26px); } to { opacity: 1; transform: none; } }
+@keyframes activity-detail-up { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+
+.destination-strip { min-height: 530px; padding: 90px clamp(48px, 8vw, 130px); display: flex; align-items: flex-end; justify-content: space-between; color: white; position: relative; background: linear-gradient(180deg, rgba(10,24,24,.12) 0%, rgba(10,24,24,.34) 46%, rgba(10,24,24,.74) 100%), linear-gradient(90deg, rgba(10,24,24,.58), rgba(10,24,24,.08) 62%), url("/assets/Gemini_Generated_Image_v0nm20v0nm20v0nm.png") center 40% / cover; }
+.destination-strip::after { content: ""; position: absolute; inset: 20px; border: 1px solid rgba(255,255,255,.4); pointer-events: none; }
+.destination-strip > * { position: relative; z-index: 1; }
+.destination-strip .eyebrow { color: white; opacity: .85; }
+.destination-strip h2 { max-width: 12ch; text-wrap: balance; }
+.destination-copy { max-width: 660px; }
+.destination-text { max-width: 500px; margin: 22px 0 0; font-family: var(--font-body); font-weight: 400; font-size: 17px; line-height: 1.65; color: rgba(255,255,255,.9); }
+.text-link { display: flex; align-items: center; gap: 20px; text-decoration: none; padding-bottom: 8px; border-bottom: 1px solid currentColor; font-family: var(--font-ui); font-weight: 600; text-transform: uppercase; letter-spacing: .2em; font-size: .8rem; }
+.text-link svg { width: 23px; transition: transform .3s; }.text-link:hover svg { transform: translateX(7px); }
+.gallery { position: relative; isolation: isolate; overflow: hidden; padding: 44px clamp(42px, 5vw, 78px) 48px; text-align: center; background: linear-gradient(180deg, #fbf4ea 0%, #f7eee2 100%); --step: clamp(104px, 12.2cqw, 178px); --card-w: clamp(248px, 25.4cqw, 356px); --card-ratio: .84 / 1; --card-radius: clamp(16px, 1.6cqw, 24px); --shoulder-x: calc(var(--step) * 3 + var(--card-w) * .5); }
+/* Fade the sand texture out before the bottom edge so the section ends on flat #f7eee2 —
+   the exact colour the footer's first swell picks up. */
+.gallery::before { content: ""; position: absolute; z-index: -1; inset: 0; background: url("/assets/sand-hero-background.png") center / cover no-repeat; opacity: .5; -webkit-mask-image: linear-gradient(180deg, #000 58%, transparent 94%); mask-image: linear-gradient(180deg, #000 58%, transparent 94%); pointer-events: none; }
+.gallery-heading { position: relative; max-width: 900px; margin: 0 auto 30px; }
+.gallery-eyebrow { margin: 0 0 12px; font-family: var(--font-ui); font-weight: 600; text-transform: uppercase; letter-spacing: .2em; font-size: .8rem; color: var(--olive-dark); }
+.gallery-eyebrow em { font-style: normal; }
+.gallery-eyebrow span { text-transform: uppercase; }
+.gallery h2 { margin: 0; color: #006973; font-family: var(--font-display); font-weight: 400; text-transform: uppercase; letter-spacing: .02em; line-height: 1.05; font-size: clamp(2rem, 4vw, 3.4rem); }
+.gallery-stage { position: relative; container-type: inline-size; height: clamp(320px, 32vw, 448px); width: 100%; max-width: 1420px; margin: 0 auto; outline: none; }
+.gallery-stage:focus-visible { outline: 1px solid rgba(86,104,62,.5); outline-offset: 18px; }
+.gallery-track { position: absolute; inset: 0; display: grid; place-items: center; }
+.gallery-slide { position: absolute; width: var(--card-w); aspect-ratio: var(--card-ratio); padding: 0; border: 0; border-radius: var(--card-radius); overflow: hidden; background: #e8ddcf; cursor: pointer; box-shadow: 0 16px 38px rgba(69,55,35,.18); transition: transform .85s cubic-bezier(.16,1,.3,1), opacity .6s ease, box-shadow .6s ease; }
+.gallery-slide img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform 1.2s cubic-bezier(.16,1,.3,1); }
+.gallery-slide:hover img { transform: scale(1.05); }
+.gallery-slide.is-active { cursor: default; box-shadow: 0 30px 62px rgba(69,55,35,.26); }
+.gallery-slide.is-shoulder { border-radius: calc(var(--card-radius) * .8); box-shadow: 0 10px 24px rgba(69,55,35,.12); }
+.gallery-slide.is-shoulder img { filter: saturate(.85); }
+.gallery-slide.is-shoulder:hover { opacity: .72 !important; }
+/* Arrows are centred on the two faded shoulder cards — same x as --shoulder-x, less half the icon. */
+.gallery-nav { position: absolute; top: 50%; z-index: 12; width: 68px; height: 68px; display: grid; place-items: center; padding: 0; border: 0; background: transparent; color: rgba(23,26,25,.62); cursor: pointer; transform: translateY(-50%); transition: color .3s, transform .35s; }
+.gallery-nav svg { width: 38px; stroke-width: 1.1; filter: drop-shadow(0 1px 2px rgba(255,252,246,.75)); }
+.gallery-nav.prev { left: calc(50% - var(--shoulder-x) - 34px); }
+.gallery-nav.next { right: calc(50% - var(--shoulder-x) - 34px); }
+.gallery-nav:hover { color: var(--ink); }
+.gallery-nav.prev:hover { transform: translate(-6px, -50%); }
+.gallery-nav.next:hover { transform: translate(6px, -50%); }
+.gallery-caption { position: relative; margin: 24px 0 0; font-family: var(--font-accent); font-weight: 400; font-size: 1.2rem; line-height: 1.3; }
+.gallery-caption span { display: block; margin-top: 8px; text-transform: uppercase; font-family: var(--font-ui); font-weight: 500; letter-spacing: .08em; font-size: .9rem; color: var(--olive); }
+.gallery-rule { margin-top: 26px; }
+
+/* Layout follows the reference footer: wave-cut top, floating pill, 4 columns with the
+   contact block in a panel, and a full-bleed bottom bar. Palette is deep olive, not teal. */
+.footer { --pad: clamp(24px, 6.5vw, 108px); --cream: #f1e8d6; position: relative; padding: 0 var(--pad); overflow: hidden; color: var(--cream); background: radial-gradient(120% 62% at 50% 6%, rgba(201,168,115,.22), transparent 62%), linear-gradient(180deg, var(--navy) 0%, var(--navy-deep) 100%); }
+/* The top band is the gallery's own colour, so the seam between the two sections disappears. */
+.footer-waves { position: absolute; top: 0; left: 0; z-index: 1; width: 100%; height: clamp(108px, 11vw, 170px); }
+.footer-waves path { stroke: none; }
+.swell-1 { fill: #f7eee2; }
+.footer-grid { position: relative; z-index: 2; display: grid; grid-template-columns: 1.4fr .9fr 1.25fr 1.15fr; gap: clamp(34px, 4.5vw, 76px); padding: clamp(136px, 13vw, 196px) 0 clamp(36px, 3.4vw, 54px); }
+.footer h3 { margin: 0 0 18px; color: var(--cream); font-family: var(--font-ui); font-weight: 600; text-transform: uppercase; letter-spacing: .2em; font-size: .8rem; }
+.footer ul { list-style: none; margin: 0; padding: 0; }
+.footer a { text-decoration: none; }
+.footer-brand h2 { margin: 0 0 16px; font-family: var(--font-display); font-weight: 400; text-transform: uppercase; letter-spacing: .02em; font-size: clamp(1.6rem, 2.4vw, 2.2rem); line-height: 1.15; }
+.footer-brand p { max-width: 330px; margin: 0 0 18px; font-family: var(--font-body); font-weight: 400; font-size: 17px; line-height: 1.65; color: rgba(241,232,214,.88); }
+.footer-brand > span { color: var(--sand); text-transform: uppercase; font-family: var(--font-ui); font-weight: 500; letter-spacing: .08em; font-size: .9rem; }
+.footer-links li { margin-bottom: 11px; }
+.footer-links a { font-family: var(--font-ui); font-weight: 600; text-transform: uppercase; letter-spacing: .2em; font-size: .8rem; color: rgba(241,232,214,.88); transition: color .3s, padding-left .3s; }
+.footer-links a:hover { color: var(--sand); padding-left: 5px; }
+.footer-panel { align-self: start; padding: 22px 26px 20px; border-radius: 16px; background: rgba(241,232,214,.09); border: 1px solid rgba(241,232,214,.12); }
+.footer-panel ul { display: grid; gap: 15px; }
+.footer-panel li { display: grid; grid-template-columns: 22px 1fr; gap: 14px; align-items: center; font-family: var(--font-ui); font-weight: 500; letter-spacing: .08em; font-size: .9rem; }
+.footer-panel svg { width: 19px; height: 19px; color: var(--sand); }
+.footer-panel address { font-style: normal; line-height: 1.45; }
+.footer-panel address a { font-weight: 600; }
+.footer-panel a { color: rgba(241,232,214,.92); transition: color .3s; }.footer-panel a:hover { color: var(--sand); }
+.footer-panel-link { display: inline-flex; align-items: center; gap: 12px; margin-top: 20px; font-family: var(--font-ui); font-weight: 600; text-transform: uppercase; letter-spacing: .2em; font-size: .8rem; }
+.footer-panel-link svg { width: 17px; height: 17px; color: currentColor; transition: transform .3s; }
+.footer-panel-link:hover svg { transform: translateX(6px); }
+/* Small Kelibia locator map, right-hand footer column. */
+.footer-map { margin: 0; }
+.footer-map iframe { display: block; width: 100%; height: 132px; border: 1px solid rgba(241,232,214,.18); border-radius: 14px; background: rgba(241,232,214,.06); filter: saturate(.82) contrast(.96); transition: filter .4s, border-color .4s; }
+.footer-map:hover iframe { filter: saturate(1) contrast(1); border-color: rgba(241,232,214,.34); }
+.footer-map figcaption { display: flex; align-items: center; gap: 9px; margin-top: 10px; font-family: var(--font-ui); font-weight: 500; letter-spacing: .08em; font-size: .9rem; }
+.footer-map figcaption svg { width: 16px; height: 16px; flex: none; color: var(--sand); }
+.footer-map figcaption a { display: inline-flex; align-items: center; gap: 8px; color: rgba(241,232,214,.88); font-family: var(--font-ui); font-weight: 600; text-transform: uppercase; letter-spacing: .2em; font-size: .8rem; transition: color .3s; }
+.footer-map figcaption a svg { width: 13px; height: 13px; transition: transform .3s; }
+.footer-map figcaption a:hover svg { transform: translate(2px, -2px); }
+.footer-map figcaption a:hover { color: var(--sand); }
+
+.footer-bottom { position: relative; z-index: 2; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; margin: 0 calc(var(--pad) * -1); padding: 13px var(--pad); background: var(--navy-deep); color: var(--cream); border-top: 1px solid rgba(241,232,214,.14); font-family: var(--font-ui); font-weight: 500; letter-spacing: .08em; font-size: .9rem; }
+.footer-bottom .footer-visit { grid-column: 2; display: inline-flex; align-items: center; gap: 10px; color: var(--cream); font-family: var(--font-ui); font-weight: 600; text-transform: uppercase; letter-spacing: .2em; font-size: .8rem; }
+.footer-bottom .footer-visit svg { width: 16px; transition: transform .3s; }.footer-bottom .footer-visit:hover svg { transform: translateX(6px); }
+.footer-bottom p { grid-column: 3; justify-self: end; margin: 0; }
+.footer-bottom p a { color: var(--cream); font-weight: 600; }.footer-bottom p a:hover { text-decoration: underline; }
+.footer-bottom span { margin: 0 4px; opacity: .5; }
+
+[data-reveal] { opacity: 0; transform: translateY(34px); transition: opacity .9s ease var(--delay, 0ms), transform 1s cubic-bezier(.16,1,.3,1) var(--delay, 0ms); }
+[data-reveal][data-visible] { opacity: 1; transform: translateY(0); }
+.hero-visual[data-reveal] { transform: translateX(30px); }.hero-visual[data-reveal][data-visible] { transform: translateX(0); }
+
+@media (max-width: 1050px) {
+  .site-header { grid-template-columns: 220px 1fr 120px; padding-inline: 28px; }
+  .main-nav { gap: 24px; }
+  .hero-copy { width: 55%; padding-left: 42px; }.hero-visual { width: 62%; }
+  .activity-grid { gap: 16px; }
+  .footer-grid { grid-template-columns: 1.4fr 1fr 1.3fr; row-gap: 38px; }.footer-social { grid-column: 2 / -1; }.footer-map { max-width: 340px; }
+}
+
+/* The experience cards are locked to a 1.5:1 box, so a narrow column cannot hold
+   title + tagline + full-width CTA. Shed a column before that happens. */
+@media (max-width: 1199px) {
+  .activity-grid { grid-template-columns: repeat(2, 1fr); max-width: 900px; --grid-cols: 2; }
+}
+@media (max-width: 800px) {
+  .activity-grid { grid-template-columns: 1fr; max-width: 560px; --grid-cols: 1; }
+  .activity-grid[data-detail] { grid-template-columns: minmax(0, 1fr); }
+  .activity-detail { grid-area: 2 / 1; padding: 4px 0 0; animation-name: activity-detail-up; }
+}
+
+/* Under this width the shoulder cards fall outside the stage, so the arrows drop below the fan. */
+@media (max-width: 1000px) {
+  .gallery-stage { height: 436px; }
+  .gallery-nav { top: auto; bottom: 0; transform: none; }
+  .gallery-nav.prev { left: calc(50% - 80px); }
+  .gallery-nav.next { right: calc(50% - 80px); }
+  .gallery-nav.prev:hover { transform: translateX(-6px); }
+  .gallery-nav.next:hover { transform: translateX(6px); }
+}
+
+@media (max-width: 760px) {
+  .site-header { height: 86px; position: absolute; grid-template-columns: 1fr auto; padding-inline: 20px; }
+  .logo img { height: 44px; }
+  .lang-menu { margin-right: 48px; }
+  .lang-toggle { min-width: 0; padding: 11px 13px; gap: 7px; }
+  .lang-toggle i { margin-left: 2px; }
+  .menu-toggle { width: 44px; height: 44px; border: 0; background: transparent; display: grid; align-content: center; gap: 7px; padding: 10px; position: absolute; right: 10px; top: 20px; z-index: 21; }
+  .menu-toggle span { display: block; height: 1px; background: var(--ink); transition: transform .3s; }.menu-toggle span:last-child { width: 65%; justify-self: end; }
+  .menu-toggle[aria-expanded="true"] span:first-child { transform: translateY(4px) rotate(45deg); }.menu-toggle[aria-expanded="true"] span:last-child { width: 100%; transform: translateY(-4px) rotate(-45deg); }
+  .main-nav { position: fixed; inset: 0; justify-self: stretch; align-self: stretch; background: rgba(249,242,232,.98); flex-direction: column; justify-content: center; gap: 34px; opacity: 0; visibility: hidden; transform: translateY(-10px); transition: .35s; }
+  .main-nav.is-open { opacity: 1; visibility: visible; transform: translateY(0); }
+  .hero { width: 100%; height: auto; min-height: 880px; padding-top: 86px; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 390px; }
+  .hero-copy { width: 100%; min-width: 0; padding: 62px 24px 44px; }.hero h1 { max-width: 100%; font-size: clamp(2.6rem, 9vw, 4.2rem); }.hero-text { max-width: 100%; }.hero-text br { display: none; }
+  .hero-visual { position: relative; inset: auto; width: calc(100% + 24px); margin-left: 0; }.hero-frame { clip-path: url(#hero-organic-clip); border-radius: 0; }.hero-visual::before { clip-path: url(#hero-organic-clip); border-radius: 0; }
+  .scroll-cue { display: none; }
+  .experiences { padding: 66px 20px 70px; }.section-heading { margin-bottom: 30px; }.section-heading > p:last-child br { display: none; }
+  .activity-grid { grid-template-columns: 1fr; gap: 25px; max-width: 560px; }.activity-card { aspect-ratio: 1.45 / 1; --card-radius: 34px 34px 34px 88px; }.activity-card-content { padding: 26px 22px 22px 26px; }.activity-card { --cue-inset: 22px; }.activity-card-content h3 { max-width: 74%; }
+  .destination-strip { min-height: 520px; padding: 65px 38px; align-items: flex-start; flex-direction: column; justify-content: flex-end; gap: 40px; }.destination-strip h2 { max-width: 100%; }.destination-text { margin-top: 18px; }
+  .gallery { padding: 36px 20px 40px; --step: 112px; --card-w: 232px; --card-radius: 18px; }.gallery-heading { margin-bottom: 22px; }
+  .gallery-stage { height: 380px; }.gallery-nav { width: 50px; height: 50px; }.gallery-nav svg { width: 29px; }.gallery-nav.prev { left: calc(50% - 64px); }.gallery-nav.next { right: calc(50% - 64px); }
+  .footer { --pad: 27px; }.footer-waves { height: 124px; }.footer-grid { grid-template-columns: 1fr; gap: 34px; padding-top: 146px; }.footer-social { grid-column: auto; }.footer-panel { max-width: 420px; }.footer-map { max-width: 420px; }.footer-map iframe { height: 172px; }
+  .footer-bottom { grid-template-columns: 1fr; justify-items: center; gap: 8px; padding: 14px 27px; text-align: center; line-height: 1.7; }.footer-bottom .footer-visit { grid-column: 1; }.footer-bottom p { grid-column: 1; justify-self: center; }
+}
+
+/* Narrow phones: the 1.45:1 card is too short for title + tagline + CTA row,
+   and the CTA needs to give up some tracking to fit beside the chevron. */
+@media (max-width: 480px) {
+  .activity-card { aspect-ratio: 1.35 / 1; }
+}
+
+/* Very narrow phones: one more step of card height. */
+@media (max-width: 360px) {
+  .activity-card { aspect-ratio: 1.18 / 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+  [data-reveal] { opacity: 1; transform: none; }
+  /* No slide, no fade-in: the detail panel is simply there. The FLIP animations in
+     ActivityGrid are skipped in JS for the same reason. */
+  .activity-detail { animation: none; }
+}
