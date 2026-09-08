@@ -354,7 +354,13 @@ svg { display: block; fill: none; stroke: currentColor; stroke-width: 1.5; strok
   .logo, .lang-menu { position: relative; z-index: 20; }
   .hero { width: 100%; height: auto; min-height: 880px; padding-top: 86px; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 390px; }
   .hero-copy { width: 100%; min-width: 0; padding: 62px 24px 44px; }.hero h1 { max-width: 100%; font-size: clamp(2.6rem, 9vw, 4.2rem); }.hero-text { max-width: 100%; }.hero-text br { display: none; }
-  .hero-visual { position: relative; inset: auto; width: calc(100% + 24px); margin-left: 0; }.hero-frame { clip-path: url(#hero-organic-clip); border-radius: 0; }.hero-visual::before { clip-path: url(#hero-organic-clip); border-radius: 0; }
+  /* Full-bleed, and clipped with the curve cut for this box - see the second
+     clipPath in App.jsx. The desktop one removed 40% of the photo here. */
+  .hero-visual { position: relative; inset: auto; width: 100%; margin-left: 0; }
+  .hero-frame, .hero-visual::before, .hero-visual::after { clip-path: url(#hero-organic-clip-mobile); border-radius: 0; }
+  /* The 1.112 horizontal stretch compensates for the desktop clip; with that
+     clip gone it is just a distorted photo. */
+  .hero-frame img { width: 100%; scale: none; transform-origin: center; }
   .scroll-cue { display: none; }
   .experiences { padding: 66px 20px 70px; }.section-heading { margin-bottom: 30px; }.section-heading > p:last-child br { display: none; }
   .activity-grid { grid-template-columns: 1fr; gap: 25px; max-width: 560px; }.activity-card { aspect-ratio: 1.45 / 1; --card-radius: 34px 34px 34px 88px; }.activity-card-content { padding: 26px 22px 22px 26px; }.activity-card-content h3 { max-width: 74%; }

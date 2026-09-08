@@ -436,6 +436,15 @@ function App() {
                 <clipPath id="hero-organic-clip" clipPathUnits="objectBoundingBox">
                   <path d="M .52 0 C .39 .07 .28 .19 .24 .36 C .20 .55 .18 .78 .14 1 L 1 1 L 1 0 Z" />
                 </clipPath>
+                {/* The curve above is in objectBoundingBox units, so it is read
+                    against the shape of the box it clips. On the desktop panel -
+                    tall and narrow - it is a gentle sweep; on the stacked mobile
+                    layout the box is short and wide, and the same numbers cut
+                    away 40% of the picture. This one takes the same corner but
+                    scaled for that box. */}
+                <clipPath id="hero-organic-clip-mobile" clipPathUnits="objectBoundingBox">
+                  <path d="M .17 0 C .08 .10 .03 .24 .015 .42 C .006 .62 0 .83 0 1 L 1 1 L 1 0 Z" />
+                </clipPath>
               </defs>
             </svg>
             <div className="hero-frame">
