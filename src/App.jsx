@@ -380,6 +380,25 @@ function App() {
     return () => observer.disconnect()
   }, [])
 
+  /* The mobile menu is a fixed full-screen overlay, so without this the page
+     keeps scrolling underneath it on touch devices. */
+  useEffect(() => {
+    if (!menuOpen) return undefined
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = previous }
+  }, [menuOpen])
+
+  /* Rotating to landscape leaves the burger menu open over a layout that no
+     longer has a burger, trapping the page behind an overlay with no way out. */
+  useEffect(() => {
+    if (!menuOpen) return undefined
+    const query = window.matchMedia('(min-width: 761px) and (min-height: 501px)')
+    const onChange = (event) => event.matches && setMenuOpen(false)
+    query.addEventListener('change', onChange)
+    return () => query.removeEventListener('change', onChange)
+  }, [menuOpen])
+
   const closeMenu = () => setMenuOpen(false)
 
   return (

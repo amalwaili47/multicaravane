@@ -331,7 +331,11 @@ svg { display: block; fill: none; stroke: currentColor; stroke-width: 1.5; strok
   .gallery-nav.next:hover { transform: translateX(6px); }
 }
 
-@media (max-width: 760px) {
+/* Phones. The second condition catches landscape phones (844-932px wide, under
+   500px tall), which are wider than 760 and were getting the desktop header and
+   a 700px hero on a 390px-tall screen - the buttons sat two screens down. The
+   950px ceiling keeps short desktop windows on the desktop layout. */
+@media (max-width: 760px), (max-width: 950px) and (max-height: 500px) {
   .site-header { height: 86px; position: absolute; grid-template-columns: 1fr auto; padding-inline: 20px; }
   .logo img { height: 44px; }
   .lang-menu { margin-right: 48px; }
@@ -340,19 +344,69 @@ svg { display: block; fill: none; stroke: currentColor; stroke-width: 1.5; strok
   .menu-toggle { width: 44px; height: 44px; border: 0; background: transparent; display: grid; align-content: center; gap: 7px; padding: 10px; position: absolute; right: 10px; top: 20px; z-index: 21; }
   .menu-toggle span { display: block; height: 1px; background: var(--ink); transition: transform .3s; }.menu-toggle span:last-child { width: 65%; justify-self: end; }
   .menu-toggle[aria-expanded="true"] span:first-child { transform: translateY(4px) rotate(45deg); }.menu-toggle[aria-expanded="true"] span:last-child { width: 100%; transform: translateY(-4px) rotate(-45deg); }
-  .main-nav { position: fixed; inset: 0; justify-self: stretch; align-self: stretch; background: rgba(249,242,232,.98); flex-direction: column; justify-content: center; gap: 34px; opacity: 0; visibility: hidden; transform: translateY(-10px); transition: .35s; }
+  /* Fully opaque: at .98 the hero headline ghosted through behind the links.
+     z-index 19 keeps it under the header's own controls (logo, language,
+     burger) so the bar stays intact and the menu still has a visible close. */
+  .main-nav { position: fixed; z-index: 19; inset: 0; justify-self: stretch; align-self: stretch; background: var(--ivory); flex-direction: column; justify-content: center; gap: 34px; opacity: 0; visibility: hidden; transform: translateY(-10px); transition: opacity .35s, transform .35s, visibility .35s; }
   .main-nav.is-open { opacity: 1; visibility: visible; transform: translateY(0); }
+  .main-nav a { padding: 10px 18px; }
+  /* Raised above the overlay so the brand and language switch stay usable. */
+  .logo, .lang-menu { position: relative; z-index: 20; }
   .hero { width: 100%; height: auto; min-height: 880px; padding-top: 86px; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 390px; }
   .hero-copy { width: 100%; min-width: 0; padding: 62px 24px 44px; }.hero h1 { max-width: 100%; font-size: clamp(2.6rem, 9vw, 4.2rem); }.hero-text { max-width: 100%; }.hero-text br { display: none; }
   .hero-visual { position: relative; inset: auto; width: calc(100% + 24px); margin-left: 0; }.hero-frame { clip-path: url(#hero-organic-clip); border-radius: 0; }.hero-visual::before { clip-path: url(#hero-organic-clip); border-radius: 0; }
   .scroll-cue { display: none; }
   .experiences { padding: 66px 20px 70px; }.section-heading { margin-bottom: 30px; }.section-heading > p:last-child br { display: none; }
-  .activity-grid { grid-template-columns: 1fr; gap: 25px; max-width: 560px; }.activity-card { aspect-ratio: 1.45 / 1; --card-radius: 34px 34px 34px 88px; }.activity-card-content { padding: 26px 22px 22px 26px; }.activity-card { --cue-inset: 22px; }.activity-card-content h3 { max-width: 74%; }
+  .activity-grid { grid-template-columns: 1fr; gap: 25px; max-width: 560px; }.activity-card { aspect-ratio: 1.45 / 1; --card-radius: 34px 34px 34px 88px; }.activity-card-content { padding: 26px 22px 22px 26px; }.activity-card-content h3 { max-width: 74%; }
+  /* Touch sizing: --cue-size drives both the WhatsApp pill and the chevron,
+     which were 28px tall - under the 44px minimum for a comfortable tap. */
+  .activity-card { --cue-inset: 20px; --cue-size: 42px; }
+  .activity-card-content a { padding: 0 16px; }
+  /* Footer links sit in tight text columns; the hit area has to come from the
+     link box itself rather than from extra spacing around it. */
+  .footer-links a { display: inline-flex; align-items: center; min-height: 44px; }
+  .footer-links li { margin-bottom: 4px; }
+  .footer-panel li { min-height: 44px; }
+  /* The phone number is the main conversion on a phone and was a 24px-tall
+     target; give it and its neighbours a full-height hit area. */
+  .footer-panel li > a, .footer-panel address a { display: inline-flex; align-items: center; min-height: 44px; }
+  .footer-panel-link, .footer-map figcaption a, .footer-bottom .footer-visit { min-height: 44px; align-items: center; }
+  .footer-bottom p a { display: inline-block; padding: 8px 2px; }
+  .text-link { min-height: 44px; }
+  .main-nav a { display: inline-flex; align-items: center; min-height: 44px; }
   .destination-strip { min-height: 520px; padding: 65px 38px; align-items: flex-start; flex-direction: column; justify-content: flex-end; gap: 40px; }.destination-strip h2 { max-width: 100%; }.destination-text { margin-top: 18px; }
   .gallery { padding: 36px 20px 40px; --step: 112px; --card-w: 232px; --card-radius: 18px; }.gallery-heading { margin-bottom: 22px; }
   .gallery-stage { height: 380px; }.gallery-nav { width: 50px; height: 50px; }.gallery-nav svg { width: 29px; }.gallery-nav.prev { left: calc(50% - 64px); }.gallery-nav.next { right: calc(50% - 64px); }
   .footer { --pad: 27px; }.footer-waves { height: 124px; }.footer-grid { grid-template-columns: 1fr; gap: 34px; padding-top: 146px; }.footer-social { grid-column: auto; }.footer-panel { max-width: 420px; }.footer-map { max-width: 420px; }.footer-map iframe { height: 172px; }
   .footer-bottom { grid-template-columns: 1fr; justify-items: center; gap: 8px; padding: 14px 27px; text-align: center; line-height: 1.7; }.footer-bottom .footer-visit { grid-column: 1; }.footer-bottom p { grid-column: 1; justify-self: center; }
+}
+
+/* Touch tablets get the desktop layout (they are wider than 760px) but still
+   need finger-sized targets, so the minimums are keyed to the pointer type
+   rather than to the width. */
+@media (pointer: coarse) {
+  .text-link, .footer-bottom .footer-visit, .footer-panel-link { min-height: 44px; align-items: center; }
+  .footer-links a, .footer-panel li > a, .footer-panel address a { display: inline-flex; align-items: center; min-height: 44px; }
+  .footer-map figcaption a { min-height: 44px; }
+  .footer-bottom p a { display: inline-block; padding: 12px 2px; }
+  .main-nav a { display: inline-flex; align-items: center; min-height: 44px; }
+  .activity-card { --cue-size: 42px; }
+  .activity-card-content a { padding: 0 16px; }
+}
+
+/* Short viewports - landscape phones, and portrait phones with little height.
+   The hero's 880px stacked height and 188px+ top padding are budgeted for a
+   tall screen; here they push the headline and both CTAs below the fold. */
+@media (max-height: 500px) {
+  .hero { min-height: 0; height: auto; grid-template-rows: auto minmax(200px, 46vh); }
+  .hero-copy { padding-top: 18px; padding-bottom: 24px; }
+  .hero h1 { font-size: clamp(2rem, 5.2vw, 3rem); }
+  /* Squeeze the vertical rhythm so both hero CTAs clear the fold at 390px tall. */
+  .hero .eyebrow { margin-bottom: 12px; }
+  .hero .ornament { margin: 13px 0 9px; }
+  .hero-text { margin-bottom: 14px; }
+  .main-nav { gap: 18px; }
+  .scroll-cue { display: none; }
 }
 
 /* Narrow phones: the 1.45:1 card is too short for title + tagline + CTA row,
