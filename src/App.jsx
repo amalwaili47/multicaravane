@@ -420,7 +420,7 @@ function App() {
               </defs>
             </svg>
             <div className="hero-frame">
-              <img src="public/assets/ca.png" alt="Placeholder for a camel caravan on Kelibia beach" />
+              <img src="/assets/ca.png" alt="Placeholder for a camel caravan on Kelibia beach" />
             </div>
           </div>
           <div className="scroll-cue" aria-hidden="true"><span>Scroll to discover</span><i /></div>
