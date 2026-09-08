@@ -367,6 +367,81 @@ function ActivityGrid() {
   )
 }
 
+/* The gold hairline drawn into sand-hero-background.png, traced off the artwork
+   as [fraction of height, fraction of width]. The background is painted at
+   100% 100%, so these fractions hold at any hero size. */
+const HERO_BG_CURVE = [
+  [0, .882], [.085, .777], [.17, .718], [.255, .689], [.34, .672], [.425, .664],
+  [.51, .656], [.595, .648], [.68, .638], [.765, .622], [.85, .601], [.935, .58], [1, .562],
+]
+
+const bgCurveX = (fractionDown) => {
+  const y = Math.min(1, Math.max(0, fractionDown))
+  for (let i = 1; i < HERO_BG_CURVE.length; i += 1) {
+    const [y0, x0] = HERO_BG_CURVE[i - 1]
+    const [y1, x1] = HERO_BG_CURVE[i]
+    if (y <= y1) return x0 + (x1 - x0) * ((y - y0) / (y1 - y0))
+  }
+  return HERO_BG_CURVE[HERO_BG_CURVE.length - 1][1]
+}
+
+/* On phones the photo sits in a band under the copy, and its clipped edge is
+   meant to read as the same line the background hairline draws through the
+   copy. Where that line crosses the top of the band depends on how tall the
+   copy ran - which changes with language, font loading and viewport - so the
+   path is built from the measured layout instead of being a fixed curve. The
+   edge leaves the junction on the hairline's own near-vertical angle, then
+   sweeps left so the photo reaches full width at the bottom of the band. */
+function useHeroCurve() {
+  const heroRef = useRef(null)
+  const visualRef = useRef(null)
+  const pathRef = useRef(null)
+
+  useEffect(() => {
+    const hero = heroRef.current
+    const visual = visualRef.current
+    const path = pathRef.current
+    if (!hero || !visual || !path) return undefined
+
+    const stacked = window.matchMedia('(max-width: 760px), (max-width: 950px) and (max-height: 500px)')
+
+    const draw = () => {
+      /* Checked per call rather than once: a window resized across the
+         breakpoint, or a phone rotated, has to pick the join up again. */
+      if (!stacked.matches) return
+      const heroBox = hero.getBoundingClientRect()
+      const visualBox = visual.getBoundingClientRect()
+      if (!heroBox.height || !visualBox.height) return
+      const top = (visualBox.top - heroBox.top) / heroBox.height
+      // The hairline is placed across the hero; the band is the full hero width
+      // on this layout, so its x fraction carries over unchanged.
+      const x = bgCurveX(top) * (heroBox.width / visualBox.width)
+      /* What the eye follows is the olive edge drawn by .hero-visual::before,
+         which is the same shape shifted 8px left. Start the clip 8px right of
+         the hairline so that edge - not the clip itself - lands on it. */
+      const edgeOffset = 8 / visualBox.width
+      const join = Math.min(.92, Math.max(.2, x + edgeOffset))
+      path.setAttribute('d', [
+        `M ${join.toFixed(4)} 0`,
+        `C ${(join * .985).toFixed(4)} .14 ${(join * .86).toFixed(4)} .3 ${(join * .62).toFixed(4)} .5`,
+        `C ${(join * .38).toFixed(4)} .7 ${(join * .14).toFixed(4)} .88 0 1`,
+        'L 1 1 L 1 0 Z',
+      ].join(' '))
+    }
+
+    draw()
+    const observer = new ResizeObserver(draw)
+    observer.observe(hero)
+    observer.observe(visual)
+    /* Webfonts land after first paint and reflow the copy, moving the join. */
+    if (document.fonts?.ready) document.fonts.ready.then(draw).catch(() => {})
+    stacked.addEventListener('change', draw)
+    return () => { observer.disconnect(); stacked.removeEventListener('change', draw) }
+  }, [])
+
+  return { heroRef, visualRef, pathRef }
+}
+
 function App() {
   const { t } = useLanguage()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -399,6 +474,8 @@ function App() {
     return () => query.removeEventListener('change', onChange)
   }, [menuOpen])
 
+  const { heroRef, visualRef, pathRef } = useHeroCurve()
+
   const closeMenu = () => setMenuOpen(false)
 
   return (
@@ -417,7 +494,7 @@ function App() {
       </header>
 
       <main>
-        <section className="hero" aria-labelledby="hero-title">
+        <section className="hero" aria-labelledby="hero-title" ref={heroRef}>
           <div className="hero-copy" data-reveal>
             <p className="eyebrow">{t('hero.eyebrow')}</p>
             <h1 id="hero-title">{t('hero.title')}</h1>
@@ -430,7 +507,7 @@ function App() {
               </a>
             </div>
           </div>
-          <div className="hero-visual" data-reveal>
+          <div className="hero-visual" data-reveal ref={visualRef}>
             <svg className="hero-clip-defs" aria-hidden="true" focusable="false">
               <defs>
                 <clipPath id="hero-organic-clip" clipPathUnits="objectBoundingBox">
@@ -443,7 +520,7 @@ function App() {
                     away 40% of the picture. This one takes the same corner but
                     scaled for that box. */}
                 <clipPath id="hero-organic-clip-mobile" clipPathUnits="objectBoundingBox">
-                  <path d="M .17 0 C .08 .10 .03 .24 .015 .42 C .006 .62 0 .83 0 1 L 1 1 L 1 0 Z" />
+                  <path ref={pathRef} d="M .17 0 C .08 .10 .03 .24 .015 .42 C .006 .62 0 .83 0 1 L 1 1 L 1 0 Z" />
                 </clipPath>
               </defs>
             </svg>
