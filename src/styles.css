@@ -352,7 +352,7 @@ svg { display: block; fill: none; stroke: currentColor; stroke-width: 1.5; strok
   .main-nav a { padding: 10px 18px; }
   /* Raised above the overlay so the brand and language switch stay usable. */
   .logo, .lang-menu { position: relative; z-index: 20; }
-  .hero { width: 100%; height: auto; min-height: 880px; padding-top: 86px; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 390px; }
+  .hero { width: 100%; height: auto; min-height: 0; padding-top: 86px; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto clamp(460px, 118vw, 600px); }
   .hero-copy { width: 100%; min-width: 0; padding: 62px 24px 44px; }.hero h1 { max-width: 100%; font-size: clamp(2.6rem, 9vw, 4.2rem); }.hero-text { max-width: 100%; }.hero-text br { display: none; }
   /* Full-bleed, and clipped with the curve cut for this box - see the second
      clipPath in App.jsx. The desktop one removed 40% of the photo here. */

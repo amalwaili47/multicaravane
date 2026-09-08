@@ -421,7 +421,13 @@ function useHeroCurve() {
          which is the same shape shifted 8px left. Push the clip 8px right so
          that edge - not the clip itself - lands on the hairline. */
       const edgeOffset = 8 / visualBox.width
-      const at = (u) => Math.min(.98, Math.max(0, bgCurveX(top + u * span) * widthRatio + edgeOffset))
+      /* The edge leaves the junction exactly on the hairline, then draws away
+         from it as it descends, so the picture widens down the band while the
+         curve keeps the shape it inherits. Easing it in rather than applying
+         it flat is what keeps the two lines continuous at the top. */
+      const WIDEN = .30
+      const at = (u) => Math.min(.98, Math.max(0,
+        bgCurveX(top + u * span) * widthRatio + edgeOffset - WIDEN * u ** 1.6))
 
       /* Sampled rather than fitted: the traced hairline is a table of points,
          and following it directly keeps the photo's edge on the curve instead
