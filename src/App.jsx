@@ -413,20 +413,26 @@ function useHeroCurve() {
       const visualBox = visual.getBoundingClientRect()
       if (!heroBox.height || !visualBox.height) return
       const top = (visualBox.top - heroBox.top) / heroBox.height
-      // The hairline is placed across the hero; the band is the full hero width
-      // on this layout, so its x fraction carries over unchanged.
-      const x = bgCurveX(top) * (heroBox.width / visualBox.width)
+      const span = visualBox.height / heroBox.height
+      /* The hairline is placed across the hero, so its x fractions carry over
+         to the band once rescaled by the two widths. */
+      const widthRatio = heroBox.width / visualBox.width
       /* What the eye follows is the olive edge drawn by .hero-visual::before,
-         which is the same shape shifted 8px left. Start the clip 8px right of
-         the hairline so that edge - not the clip itself - lands on it. */
+         which is the same shape shifted 8px left. Push the clip 8px right so
+         that edge - not the clip itself - lands on the hairline. */
       const edgeOffset = 8 / visualBox.width
-      const join = Math.min(.92, Math.max(.2, x + edgeOffset))
-      path.setAttribute('d', [
-        `M ${join.toFixed(4)} 0`,
-        `C ${(join * .985).toFixed(4)} .14 ${(join * .86).toFixed(4)} .3 ${(join * .62).toFixed(4)} .5`,
-        `C ${(join * .38).toFixed(4)} .7 ${(join * .14).toFixed(4)} .88 0 1`,
-        'L 1 1 L 1 0 Z',
-      ].join(' '))
+      const at = (u) => Math.min(.98, Math.max(0, bgCurveX(top + u * span) * widthRatio + edgeOffset))
+
+      /* Sampled rather than fitted: the traced hairline is a table of points,
+         and following it directly keeps the photo's edge on the curve instead
+         of near it. 16 steps is under half a pixel of error at these sizes. */
+      const STEPS = 16
+      const edge = [`M ${at(0).toFixed(4)} 0`]
+      for (let i = 1; i <= STEPS; i += 1) {
+        const u = i / STEPS
+        edge.push(`L ${at(u).toFixed(4)} ${u.toFixed(4)}`)
+      }
+      path.setAttribute('d', `${edge.join(' ')} L 1 1 L 1 0 Z`)
     }
 
     draw()
