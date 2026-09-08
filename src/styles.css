@@ -353,10 +353,26 @@ svg { display: block; fill: none; stroke: currentColor; stroke-width: 1.5; strok
   /* Raised above the overlay so the brand and language switch stay usable. */
   .logo, .lang-menu { position: relative; z-index: 20; }
   .hero { width: 100%; height: auto; min-height: 0; padding-top: 86px; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto clamp(460px, 118vw, 600px); }
-  .hero-copy { width: 100%; min-width: 0; padding: 62px 24px 44px; }.hero h1 { max-width: 100%; font-size: clamp(2.6rem, 9vw, 4.2rem); }.hero-text { max-width: 100%; }.hero-text br { display: none; }
+  /* The picture now runs the full height of the hero up the right-hand side,
+     so the copy has to stay clear of the curve rather than span the width.
+     38% leaves the text a margin against the hairline at its lowest point,
+     and the headline steps down a size to hold its line breaks in what is
+     left. */
+  .hero-copy { width: 100%; min-width: 0; padding: 62px 38% 44px 24px; }
+  .hero h1 { max-width: 100%; font-size: clamp(1.75rem, 7.4vw, 4.2rem); }
+  .hero-text { max-width: 100%; }.hero-text br { display: none; }
+  /* The buttons carry .2em of tracking sized for a full-width column; in the
+     narrowed copy that tipped both labels onto a second line. */
+  .hero-actions .primary-button, .hero-actions .secondary-button { padding: 0 18px; font-size: .72rem; letter-spacing: .12em; }
+  /* The picture is a tall, narrow crop here, so cover zooms a long way in;
+     centred keeps two riders in frame rather than one. */
+  .hero-frame img { object-position: center; }
   /* Full-bleed, and clipped with the curve cut for this box - see the second
      clipPath in App.jsx. The desktop one removed 40% of the photo here. */
-  .hero-visual { position: relative; inset: auto; width: 100%; margin-left: 0; }
+  /* Absolute over the whole hero, not just the band: the picture runs up the
+     right-hand side and behind the header, so the curve is one sweep from the
+     top of the page. The grid row below still reserves its height. */
+  .hero-visual { position: absolute; z-index: 1; inset: 0; width: 100%; margin-left: 0; }
   .hero-frame, .hero-visual::before, .hero-visual::after { clip-path: url(#hero-organic-clip-mobile); border-radius: 0; }
   /* The 1.112 horizontal stretch compensates for the desktop clip; with that
      clip gone it is just a distorted photo. */

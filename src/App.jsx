@@ -395,13 +395,15 @@ const bgCurveX = (fractionDown) => {
 function useHeroCurve() {
   const heroRef = useRef(null)
   const visualRef = useRef(null)
+  const copyRef = useRef(null)
   const pathRef = useRef(null)
 
   useEffect(() => {
     const hero = heroRef.current
     const visual = visualRef.current
+    const copy = copyRef.current
     const path = pathRef.current
-    if (!hero || !visual || !path) return undefined
+    if (!hero || !visual || !copy || !path) return undefined
 
     const stacked = window.matchMedia('(max-width: 760px), (max-width: 950px) and (max-height: 500px)')
 
@@ -421,13 +423,27 @@ function useHeroCurve() {
          which is the same shape shifted 8px left. Push the clip 8px right so
          that edge - not the clip itself - lands on the hairline. */
       const edgeOffset = 8 / visualBox.width
-      /* The edge leaves the junction exactly on the hairline, then draws away
-         from it as it descends, so the picture widens down the band while the
-         curve keeps the shape it inherits. Easing it in rather than applying
-         it flat is what keeps the two lines continuous at the top. */
+      /* Beside the copy the edge sits on the hairline exactly, so the picture
+         occupies the nude panel and nothing crowds the text. Past the last line
+         it draws away, opening the picture out across the width it no longer
+         has to share. Easing the divergence in from zero is what keeps the
+         edge smooth where the two behaviours meet. */
       const WIDEN = .30
+      const copyBox = copy.getBoundingClientRect()
+      const copyEnd = Math.min(.95, (copyBox.bottom - heroBox.top) / heroBox.height)
+      const widenAt = (u) => (u <= copyEnd ? 0 : WIDEN * ((u - copyEnd) / (1 - copyEnd)) ** 1.6)
+
+      /* At the very top the hairline sits at 88% of the width, which leaves the
+         picture starting just clear of the language button rather than running
+         under it. Pull that first stretch left far enough to tuck behind the
+         button, fading out within the header's own height so the curve below
+         is untouched. */
+      const TUCK = .14
+      const TUCK_SPAN = .12
+      const tuckAt = (u) => (u >= TUCK_SPAN ? 0 : TUCK * (1 - u / TUCK_SPAN) ** 2)
+
       const at = (u) => Math.min(.98, Math.max(0,
-        bgCurveX(top + u * span) * widthRatio + edgeOffset - WIDEN * u ** 1.6))
+        bgCurveX(top + u * span) * widthRatio + edgeOffset - widenAt(u) - tuckAt(u)))
 
       /* Sampled rather than fitted: the traced hairline is a table of points,
          and following it directly keeps the photo's edge on the curve instead
@@ -445,13 +461,14 @@ function useHeroCurve() {
     const observer = new ResizeObserver(draw)
     observer.observe(hero)
     observer.observe(visual)
+    observer.observe(copy)
     /* Webfonts land after first paint and reflow the copy, moving the join. */
     if (document.fonts?.ready) document.fonts.ready.then(draw).catch(() => {})
     stacked.addEventListener('change', draw)
     return () => { observer.disconnect(); stacked.removeEventListener('change', draw) }
   }, [])
 
-  return { heroRef, visualRef, pathRef }
+  return { heroRef, visualRef, copyRef, pathRef }
 }
 
 function App() {
@@ -486,7 +503,7 @@ function App() {
     return () => query.removeEventListener('change', onChange)
   }, [menuOpen])
 
-  const { heroRef, visualRef, pathRef } = useHeroCurve()
+  const { heroRef, visualRef, copyRef, pathRef } = useHeroCurve()
 
   const closeMenu = () => setMenuOpen(false)
 
@@ -507,7 +524,7 @@ function App() {
 
       <main>
         <section className="hero" aria-labelledby="hero-title" ref={heroRef}>
-          <div className="hero-copy" data-reveal>
+          <div className="hero-copy" data-reveal ref={copyRef}>
             <p className="eyebrow">{t('hero.eyebrow')}</p>
             <h1 id="hero-title">{t('hero.title')}</h1>
             <div className="ornament" aria-hidden="true"><i /></div>
