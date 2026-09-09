@@ -352,41 +352,28 @@ svg { display: block; fill: none; stroke: currentColor; stroke-width: 1.5; strok
   .main-nav a { padding: 10px 18px; }
   /* Raised above the overlay so the brand and language switch stay usable. */
   .logo, .lang-menu { position: relative; z-index: 20; }
-  /* The photo band is exactly half the viewport height. svh - the height with
-     the browser chrome showing - rather than vh, so the band does not resize
-     as the address bar slides away mid-scroll. */
-  .hero { width: 100%; height: auto; min-height: 0; padding-top: 86px; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto var(--hero-photo-h, 50vh); }
-  @supports (height: 1svh) { .hero { --hero-photo-h: 50svh; } }
-  /* The picture sits in its own row under the copy, so the copy spans the
-     full width again rather than holding a margin against the curve. */
-  .hero-copy { width: 100%; min-width: 0; padding: 62px 24px 44px; }
+  /* Phones keep the composition the desktop hero has - copy on the left, the
+     photo panel cut down the right - rather than restacking it. The panel
+     width and the type scale down; the clip path is the same one, read in
+     objectBoundingBox units, so the curve is the same sweep. */
+  .hero { width: 100%; height: auto; min-height: min(680px, 100svh); padding-top: 86px; display: block; }
+  /* 38% of the width is the panel side. That leaves the text a margin against
+     the curve where it runs closest, near the bottom of the hero, and the
+     headline steps down a size to hold its line breaks in what is left. */
+  .hero-copy { width: 100%; padding: 40px 38% 44px 24px; }
   .hero h1 { max-width: 100%; font-size: clamp(1.75rem, 7.4vw, 4.2rem); }
   .hero-text { max-width: 100%; }.hero-text br { display: none; }
   /* The buttons carry .2em of tracking sized for a full-width column; in the
      narrowed copy that tipped both labels onto a second line. */
   .hero-actions .primary-button, .hero-actions .secondary-button { padding: 0 18px; font-size: .72rem; letter-spacing: .12em; }
-  /* Bottom-anchored and exactly as tall as the row reserved above, so the band
-     fills that row and nothing overlaps the copy. */
-  .hero-visual {
-    position: absolute;
-    z-index: 1;
-    inset: auto 0 0;
-    width: 100%;
-    height: var(--hero-photo-h, 50vh);
-  }
-  /* The same organic cut and the same two offset edge strokes as the desktop
-     panel, for one shape across the breakpoints. It is read in
-     objectBoundingBox units, so it restates itself against this box. */
-  .hero-frame, .hero-visual::before, .hero-visual::after { clip-path: url(#hero-organic-clip); border-radius: 0; }
-  /* The sideways reveal was built for a panel entering from the right; a
-     full-width band sliding in that way bares the left edge of the hero. */
-  .hero-visual[data-reveal] { transform: translateY(26px); }
-  .hero-visual[data-reveal][data-visible] { transform: translateY(0); }
-  /* The 1.112 horizontal stretch compensates for the way the desktop panel is
-     clipped at its own proportions; at this size it is just a distorted photo.
-     Centred in the frame, so the curve takes its bite out of open sand on the
-     left rather than out of the caravan. */
-  .hero-frame img { width: 100%; scale: none; transform-origin: center; object-position: center; }
+  /* Back to the desktop 64% after the 1050px step narrows it, so the curve
+     meets the copy at the same fractions of the width it does there. */
+  .hero-visual { width: 64%; }
+  /* The 1.112 horizontal stretch is tuned to the proportions of the desktop
+     panel; on this one it is just a distorted photo. The panel is a tall,
+     narrow slice of a landscape frame at this width, so cover zooms a long
+     way in - 62% across lands the crop on the riders rather than on open sea. */
+  .hero-frame img { width: 100%; scale: none; transform-origin: center; object-position: 62% center; }
   .scroll-cue { display: none; }
   .experiences { padding: 66px 20px 70px; }.section-heading { margin-bottom: 30px; }.section-heading > p:last-child br { display: none; }
   .activity-grid { grid-template-columns: 1fr; gap: 25px; max-width: 560px; }.activity-card { aspect-ratio: 1.45 / 1; --card-radius: 34px 34px 34px 88px; }.activity-card-content { padding: 26px 22px 22px 26px; }.activity-card-content h3 { max-width: 74%; }
@@ -430,7 +417,7 @@ svg { display: block; fill: none; stroke: currentColor; stroke-width: 1.5; strok
    The hero's 880px stacked height and 188px+ top padding are budgeted for a
    tall screen; here they push the headline and both CTAs below the fold. */
 @media (max-height: 500px) {
-  .hero { min-height: 0; height: auto; grid-template-rows: auto minmax(200px, 46vh); }
+  .hero { min-height: 0; height: auto; }
   .hero-copy { padding-top: 18px; padding-bottom: 24px; }
   .hero h1 { font-size: clamp(2rem, 5.2vw, 3rem); }
   /* Squeeze the vertical rhythm so both hero CTAs clear the fold at 390px tall. */
@@ -439,13 +426,6 @@ svg { display: block; fill: none; stroke: currentColor; stroke-width: 1.5; strok
   .hero-text { margin-bottom: 14px; }
   .main-nav { gap: 18px; }
   .scroll-cue { display: none; }
-}
-
-/* The short-viewport rules above are shared with short desktop windows, where
-   the hero row is sized against the side panel. On a landscape phone the band
-   keeps its half-of-the-screen height. */
-@media (max-width: 950px) and (max-height: 500px) {
-  .hero { grid-template-rows: auto var(--hero-photo-h, 50vh); }
 }
 
 /* Narrow phones: the 1.45:1 card is too short for title + tagline + CTA row,
