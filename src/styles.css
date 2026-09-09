@@ -305,7 +305,14 @@ svg { display: block; fill: none; stroke: currentColor; stroke-width: 1.5; strok
 @media (max-width: 1050px) {
   .site-header { grid-template-columns: 220px 1fr 120px; padding-inline: 28px; }
   .main-nav { gap: 24px; }
-  .hero-copy { width: 55%; padding-left: 42px; }.hero-visual { width: 62%; }
+  /* The panel is 62% here, so the curve comes closest to the copy at 47% of
+     the width. The copy box stops at 44% and the subtitle gives up its own
+     470px max-width so that box is what bounds it; at 55% and 470px the
+     paragraph ran a long way over the picture. The headline scales with the
+     column it now has. */
+  .hero-copy { width: 44%; padding-left: 42px; }.hero-visual { width: 62%; }
+  .hero h1 { font-size: clamp(2.4rem, 5.2vw, 4.2rem); }
+  .hero-text { max-width: 100%; }
   .activity-grid { gap: 16px; }
   .footer-grid { grid-template-columns: 1.4fr 1fr 1.3fr; row-gap: 38px; }.footer-social { grid-column: 2 / -1; }.footer-map { max-width: 340px; }
 }
@@ -357,18 +364,24 @@ svg { display: block; fill: none; stroke: currentColor; stroke-width: 1.5; strok
      width and the type scale down; the clip path is the same one, read in
      objectBoundingBox units, so the curve is the same sweep. */
   .hero { width: 100%; height: auto; min-height: min(680px, 100svh); padding-top: 86px; display: block; }
-  /* 38% of the width is the panel side. That leaves the text a margin against
-     the curve where it runs closest, near the bottom of the hero, and the
-     headline steps down a size to hold its line breaks in what is left. */
-  .hero-copy { width: 100%; padding: 40px 38% 44px 24px; }
-  .hero h1 { max-width: 100%; font-size: clamp(1.75rem, 7.4vw, 4.2rem); }
-  .hero-text { max-width: 100%; }.hero-text br { display: none; }
-  /* The buttons carry .2em of tracking sized for a full-width column; in the
-     narrowed copy that tipped both labels onto a second line. */
-  .hero-actions .primary-button, .hero-actions .secondary-button { padding: 0 18px; font-size: .72rem; letter-spacing: .12em; }
-  /* Back to the desktop 64% after the 1050px step narrows it, so the curve
-     meets the copy at the same fractions of the width it does there. */
-  .hero-visual { width: 64%; }
+  /* The clip's closest approach to the copy is 14% into the panel, so with a
+     56% panel the photo's edge sits at ~50% of the width. The copy box stops
+     at 46% and every line of it therefore falls on sand rather than on the
+     picture. The column that leaves is narrow, so the type steps down and the
+     headline takes more lines rather than crowding the curve. */
+  .hero-copy { width: 100%; padding: 34px 54% 40px 20px; }
+  .hero .eyebrow { margin-bottom: 14px; font-size: .62rem; letter-spacing: .14em; }
+  .hero h1 { max-width: 100%; font-size: clamp(1.3rem, 5.4vw, 4.2rem); }
+  .hero .ornament { width: 118px; margin: 16px 0 13px; }
+  .hero-text { max-width: 100%; font-size: 15px; line-height: 1.55; margin-bottom: 20px; }.hero-text br { display: none; }
+  /* Side by side, the two labels cannot fit this column at any size that is
+     still readable - "Decouvrir les experiences" is 25 characters. Stacked and
+     full width, each one wraps inside its own button instead. */
+  .hero-actions { flex-direction: column; align-items: stretch; gap: 10px; }
+  .hero-actions .primary-button, .hero-actions .secondary-button { width: 100%; height: auto; padding: 12px 14px; font-size: .64rem; letter-spacing: .1em; line-height: 1.35; text-align: center; }
+  /* Narrower than the 64% of the desktop panel: the width the copy needs to
+     stay clear of the curve has to come from somewhere. */
+  .hero-visual { width: 56%; }
   /* The 1.112 horizontal stretch is tuned to the proportions of the desktop
      panel; on this one it is just a distorted photo. The panel is a tall,
      narrow slice of a landscape frame at this width, so cover zooms a long
@@ -424,6 +437,10 @@ svg { display: block; fill: none; stroke: currentColor; stroke-width: 1.5; strok
   .hero .eyebrow { margin-bottom: 12px; }
   .hero .ornament { margin: 13px 0 9px; }
   .hero-text { margin-bottom: 14px; }
+  /* Landscape gives the copy column the width to hold both labels on one
+     row again, so the stacked phone buttons go back to sitting side by side. */
+  .hero-actions { flex-direction: row; align-items: center; }
+  .hero-actions .primary-button, .hero-actions .secondary-button { width: auto; }
   .main-nav { gap: 18px; }
   .scroll-cue { display: none; }
 }
