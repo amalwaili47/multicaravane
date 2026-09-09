@@ -1,25 +1,29 @@
 /* Single source of truth for everything that goes in <head> and for the
    JSON-LD graph. Read at build time by scripts/prerender.mjs to write the
-   static document each URL is served as, and at runtime by useDocumentHead()
+   static HTML each language is served as, and at runtime by useDocumentHead()
    so an in-page language switch updates the same tags. */
-import { languages } from './i18n.jsx'
-import { PAGES, ACTIVITY_PAGES, pagePath, pageById } from './routes.js'
-import { content, pageContent } from './content/index.js'
+import { translations, languages, DEFAULT_LANGUAGE } from './i18n.jsx'
 
 /* The canonical host, from NEXT_PUBLIC_SITE_URL so it is configured in one
    place rather than repeated across the sitemap, robots.txt, llms.txt and the
-   tags below. Any trailing slash is dropped so the joins below cannot double
-   up.
-
-   NOTE: the apex currently answers 308 -> https://www.multicaravane.com. The
-   brief specifies the apex as canonical, so that is the default here; Vercel's
-   primary domain has to be switched to the apex to match, or every canonical
-   points at a redirect. This is the only line to change either way. */
+   tags below. The default is the apex's redirect target: https://multicaravane.com
+   answers 308 -> https://www.multicaravane.com, so www is the host that
+   actually serves, and the one every absolute URL here has to name. Any
+   trailing slash is dropped so joins below cannot double up. */
 export const SITE_URL =
-  (import.meta.env?.NEXT_PUBLIC_SITE_URL || 'https://multicaravane.com').replace(/\/+$/, '')
+  (import.meta.env?.NEXT_PUBLIC_SITE_URL || 'https://www.multicaravane.com').replace(/\/+$/, '')
+
+/* Every public route, as a path under the language prefix. The site is one
+   page per language today, so there is one entry; adding a route here puts it
+   in the sitemap, in the hreflang set and in the prerender automatically.
+   In-page anchors (#experiences, #gallery, #contact) are not routes and must
+   not appear in a sitemap. */
+export const ROUTES = [
+  { path: '', changefreq: 'monthly' },
+]
 
 /* The hero photograph, the only image in the repo wide enough to serve as a
-   social card at full width. */
+   social card. */
 export const OG_IMAGE = `${SITE_URL}/assets/ca.png`
 
 export const OG_LOCALES = { fr: 'fr_FR', en: 'en_GB', it: 'it_IT' }
@@ -33,125 +37,91 @@ export const BUSINESS = {
   addressCountry: 'TN',
 }
 
-export const pageUrl = (pageId, code) => `${SITE_URL}${pagePath(pageId, code)}`
+/* Path-prefixed URLs, no trailing slash. `/` serves the default language as
+   the x-default entry point and canonicalises to that language's own URL. */
+export const localeUrl = (code, path = '') => `${SITE_URL}/${code}${path ? `/${path}` : ''}`
 export const X_DEFAULT_URL = `${SITE_URL}/`
 
-/* The same page in all three languages plus x-default. Identical on every
-   language version of a page, self-reference included, which is what Google
-   requires for the set to be reciprocal. */
-export const alternatesFor = (pageId) => [
-  ...languages.map((item) => ({ hreflang: item.code, href: pageUrl(pageId, item.code) })),
+/* The same route in all three languages plus x-default. Identical on every
+   language version of a page, self-reference included. */
+export const alternatesFor = (path = '') => [
+  ...languages.map((item) => ({ hreflang: item.code, href: localeUrl(item.code, path) })),
   { hreflang: 'x-default', href: X_DEFAULT_URL },
 ]
 
-/* The image a page leads with, when it has one of its own. */
-const pageImage = (pageId) => {
-  const image = pageById(pageId)?.image
-  return image ? `${SITE_URL}${image}` : OG_IMAGE
+/* 50-60 characters, native in each language, activity plus place. */
+export const META = {
+  en: {
+    title: 'Quad, Camel and Horse Rides in Kélibia | M’Caravane',
+    description:
+      'Quad excursions over the dunes, camel and horse rides on El Mansoura beach, and guided tours of the Kélibia Fort. Small groups — book on WhatsApp.',
+  },
+  fr: {
+    title: 'Quad, dromadaire et cheval à Kélibia | M’Caravane Kelibia',
+    description:
+      'Excursions en quad sur les dunes, balades à dromadaire et à cheval sur la plage d’El Mansoura, visite guidée du Fort. Petits groupes — réservez sur WhatsApp.',
+  },
+  it: {
+    title: 'Quad, cammelli e cavalli a Kélibia | M’Caravane Kelibia',
+    description:
+      'Escursioni in quad tra le dune, giri in cammello e a cavallo sulla spiaggia di El Mansoura, visite guidate al Forte. Piccoli gruppi — prenota su WhatsApp.',
+  },
 }
 
-/* Visible breadcrumb trail, mirrored one-for-one by the BreadcrumbList node.
-   The homepage shows none, so it emits none. */
-export const breadcrumbFor = (code, pageId) => {
-  if (pageId === 'home') return []
-  return [
-    { name: content[code].ui.breadcrumbHome, url: pageUrl('home', code) },
-    { name: pageContent(code, pageId).h1, url: pageUrl(pageId, code) },
-  ]
-}
+/* The three activity cards the page actually renders. Camel and horse riding
+   share one card, so they share one Service node - the graph has to describe
+   what is visible. */
+const SERVICES = [
+  { id: 'camel', key: 'camel' },
+  { id: 'quad', key: 'quad' },
+  { id: 'city', key: 'city' },
+]
 
-/* No `geo` and no `openingHours` (not supplied), no `sameAs` entries (no social
-   profile appears anywhere in the repo) and no `offers` (every price string in
-   the content is still the placeholder "XX €"). Each is listed in the report
-   rather than filled with a guess. */
-function businessNode() {
+const t = (code, key) =>
+  translations[code]?.[key] ?? translations[DEFAULT_LANGUAGE][key] ?? key
+
+/* No `geo` (not supplied), no `sameAs` entries (no social profile appears
+   anywhere in the repo) and no `offers` (every price string in the content is
+   still the placeholder "XX €"). Each of those is listed in the report rather
+   than filled with a guess. */
+export function buildJsonLd(code) {
   return {
-    '@type': 'TouristAttraction',
-    '@id': `${SITE_URL}/#business`,
-    name: BUSINESS.name,
-    url: SITE_URL,
-    email: BUSINESS.email,
-    telephone: BUSINESS.telephone,
-    address: {
-      '@type': 'PostalAddress',
-      streetAddress: BUSINESS.streetAddress,
-      addressLocality: BUSINESS.addressLocality,
-      addressCountry: BUSINESS.addressCountry,
-    },
-    availableLanguage: ['fr', 'en', 'it'],
-    image: OG_IMAGE,
-    sameAs: [],
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'TouristAttraction',
+        '@id': `${SITE_URL}/#business`,
+        name: BUSINESS.name,
+        url: SITE_URL,
+        email: BUSINESS.email,
+        telephone: BUSINESS.telephone,
+        address: {
+          '@type': 'PostalAddress',
+          streetAddress: BUSINESS.streetAddress,
+          addressLocality: BUSINESS.addressLocality,
+          addressCountry: BUSINESS.addressCountry,
+        },
+        availableLanguage: ['fr', 'en', 'it'],
+        image: OG_IMAGE,
+        sameAs: [],
+      },
+      ...SERVICES.map((service) => ({
+        '@type': 'Service',
+        '@id': `${SITE_URL}/#service-${service.id}`,
+        name: t(code, `${service.key}.title`),
+        description: t(code, `${service.key}.description`),
+        provider: { '@id': `${SITE_URL}/#business` },
+        areaServed: 'Kélibia, Tunisia',
+      })),
+    ],
   }
 }
 
-function breadcrumbNode(code, pageId) {
-  const trail = breadcrumbFor(code, pageId)
-  if (!trail.length) return null
-  return {
-    '@type': 'BreadcrumbList',
-    '@id': `${pageUrl(pageId, code)}#breadcrumb`,
-    itemListElement: trail.map((crumb, index) => ({
-      '@type': 'ListItem',
-      position: index + 1,
-      name: crumb.name,
-      item: crumb.url,
-    })),
-  }
-}
-
-/* One TouristTrip per activity page, described in that page's language and
-   linked to the business that provides it. */
-function activityNode(code, pageId) {
-  const page = pageContent(code, pageId)
-  if (!page?.schema) return null
-  return {
-    '@type': 'TouristTrip',
-    '@id': `${pageUrl(pageId, code)}#trip`,
-    name: page.schema.name,
-    description: page.schema.description,
-    touristType: page.schema.touristType,
-    areaServed: 'Kélibia, Tunisia',
-    provider: { '@id': `${SITE_URL}/#business` },
-    inLanguage: code,
-    url: pageUrl(pageId, code),
-  }
-}
-
-/* Built from the same array the page renders, so the schema can never contain
-   an answer that is not visible on the page. */
-function faqNode(code, pageId) {
-  const page = pageContent(code, pageId)
-  if (!page?.faq) return null
-  return {
-    '@type': 'FAQPage',
-    '@id': `${pageUrl(pageId, code)}#faq`,
-    inLanguage: code,
-    mainEntity: page.faq.map((item) => ({
-      '@type': 'Question',
-      name: item.q,
-      acceptedAnswer: { '@type': 'Answer', text: item.a.join(' ') },
-    })),
-  }
-}
-
-export function buildJsonLd(code, pageId) {
-  const nodes = [businessNode(), breadcrumbNode(code, pageId), activityNode(code, pageId), faqNode(code, pageId)]
-
-  /* The homepage lists every activity, so it carries all four trip nodes -
-     each one matching a card that is visible on it. */
-  if (pageId === 'home' || pageId === 'activities') {
-    nodes.push(...ACTIVITY_PAGES.map((page) => activityNode(code, page.id)))
-  }
-
-  return { '@context': 'https://schema.org', '@graph': nodes.filter(Boolean) }
-}
-
-/* Everything <head> needs for one page in one language, as data. The prerender
-   serialises it to HTML; the runtime applies it to the live document. */
-export function describeHead(code, pageId = 'home') {
-  const canonical = pageUrl(pageId, code)
-  const { title, description } = pageContent(code, pageId)
-  const image = pageImage(pageId)
+/* Everything <head> needs for one language, as data. The prerender serialises
+   it to HTML; the runtime applies it to the live document. */
+export function describeHead(code, path = '') {
+  const canonical = localeUrl(code, path)
+  const { title, description } = META[code]
 
   return {
     lang: code,
@@ -161,7 +131,7 @@ export function describeHead(code, pageId = 'home') {
       { name: 'description', content: description },
       { property: 'og:title', content: title },
       { property: 'og:description', content: description },
-      { property: 'og:image', content: image },
+      { property: 'og:image', content: OG_IMAGE },
       { property: 'og:url', content: canonical },
       { property: 'og:type', content: 'website' },
       { property: 'og:site_name', content: BUSINESS.name },
@@ -172,13 +142,11 @@ export function describeHead(code, pageId = 'home') {
       { name: 'twitter:card', content: 'summary_large_image' },
       { name: 'twitter:title', content: title },
       { name: 'twitter:description', content: description },
-      { name: 'twitter:image', content: image },
+      { name: 'twitter:image', content: OG_IMAGE },
     ],
-    alternates: alternatesFor(pageId),
-    jsonLd: buildJsonLd(code, pageId),
+    /* The same four alternates on every language version, self-reference
+       included, which is what Google requires for the set to be reciprocal. */
+    alternates: alternatesFor(path),
+    jsonLd: buildJsonLd(code),
   }
 }
-
-/* Every URL the site publishes, for the sitemap and the prerender. */
-export const allRoutes = () =>
-  PAGES.flatMap((page) => languages.map((item) => ({ pageId: page.id, code: item.code, path: pagePath(page.id, item.code) })))

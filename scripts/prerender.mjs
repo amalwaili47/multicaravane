@@ -3,10 +3,10 @@
 
    Output, with cleanUrls in vercel.json serving each file without the
    extension:
-     dist/index.html          ->  /            x-default, default language
-     dist/en.html             ->  /en
-     dist/en/activities.html  ->  /en/activities
-     ... one file per page per language, 27 in all
+     dist/index.html  ->  /       x-default, default language, canonical /en
+     dist/en.html     ->  /en
+     dist/fr.html     ->  /fr
+     dist/it.html     ->  /it
 
    robots.txt and llms.txt are written here too, from scripts/templates, so the
    host in them comes from the same NEXT_PUBLIC_SITE_URL as everything else
@@ -14,7 +14,7 @@
 import { execFileSync } from 'node:child_process'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
-import { render, languages, DEFAULT_LANGUAGE, SITE_URL, pageUrl, alternatesFor, allRoutes, PAGES } from '../.ssr/entry-server.js'
+import { render, languages, DEFAULT_LANGUAGE, SITE_URL, ROUTES, localeUrl, alternatesFor } from '../.ssr/entry-server.js'
 
 const NL = '\n'
 /* The files a page's content is built from, for the lastmod lookup. */
@@ -47,8 +47,8 @@ function headHtml(head) {
   return lines.join('\n')
 }
 
-function document(code, pageId) {
-  const { html, head } = render(code, pageId)
+function document(code, path) {
+  const { html, head } = render(code, path)
   return template
     .replace('<html lang="en">', `<html lang="${escapeAttr(head.lang)}">`)
     /* The shell's own title and description are replaced, not appended to, so
@@ -75,15 +75,19 @@ function contentDate(sources) {
 }
 
 function sitemap() {
-  const entries = allRoutes().map(({ pageId, code }) => [
-    '  <url>',
-    `    <loc>${escapeAttr(pageUrl(pageId, code))}</loc>`,
-    ...alternatesFor(pageId).map((alt) =>
-      `    <xhtml:link rel="alternate" hreflang="${alt.hreflang}" href="${escapeAttr(alt.href)}" />`),
-    ...(LASTMOD ? [`    <lastmod>${LASTMOD}</lastmod>`] : []),
-    '    <changefreq>monthly</changefreq>',
-    '  </url>',
-  ].join(NL))
+  const entries = ROUTES.flatMap((route) => {
+    const alternates = alternatesFor(route.path)
+    const lastmod = contentDate(route.sources ?? CONTENT_SOURCES)
+    return languages.map((item) => [
+      '  <url>',
+      `    <loc>${escapeAttr(localeUrl(item.code, route.path))}</loc>`,
+      ...alternates.map((alt) =>
+        `    <xhtml:link rel="alternate" hreflang="${alt.hreflang}" href="${escapeAttr(alt.href)}" />`),
+      ...(lastmod ? [`    <lastmod>${lastmod}</lastmod>`] : []),
+      ...(route.changefreq ? [`    <changefreq>${route.changefreq}</changefreq>`] : []),
+      '  </url>',
+    ].join(NL))
+  })
 
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
@@ -106,20 +110,21 @@ function write(file, body) {
   writeFileSync(file, body)
 }
 
-const LASTMOD = contentDate(CONTENT_SOURCES)
-
 /* `/` is the default language, serving as the x-default entry point. */
-write(resolve(DIST, 'index.html'), document(DEFAULT_LANGUAGE, 'home'))
+write(resolve(DIST, 'index.html'), document(DEFAULT_LANGUAGE, ''))
 
 const written = []
-for (const { pageId, code, path } of allRoutes()) {
-  write(resolve(DIST, `.${path}.html`), document(code, pageId))
-  written.push(path)
+for (const route of ROUTES) {
+  for (const item of languages) {
+    const file = resolve(DIST, `${item.code}${route.path ? `/${route.path}` : ''}.html`)
+    write(file, document(item.code, route.path))
+    written.push(localeUrl(item.code, route.path))
+  }
 }
 
 writeFileSync(resolve(DIST, 'sitemap.xml'), sitemap())
 writeTemplate('robots.txt')
 writeTemplate('llms.txt')
 
-console.log(`prerendered ${SITE_URL}/ and ${written.length} routes across ${PAGES.length} pages;`
-  + ` sitemap lastmod ${LASTMOD ?? '(omitted, no git history)'}`)
+const lastmod = contentDate(CONTENT_SOURCES)
+console.log(`prerendered ${SITE_URL}/ and ${written.length} routes; sitemap lastmod ${lastmod ?? '(omitted, no git history)'}`)
