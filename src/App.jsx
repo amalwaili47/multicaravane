@@ -367,110 +367,6 @@ function ActivityGrid() {
   )
 }
 
-/* The gold hairline drawn into sand-hero-background.png, traced off the artwork
-   as [fraction of height, fraction of width]. The background is painted at
-   100% 100%, so these fractions hold at any hero size. */
-const HERO_BG_CURVE = [
-  [0, .882], [.085, .777], [.17, .718], [.255, .689], [.34, .672], [.425, .664],
-  [.51, .656], [.595, .648], [.68, .638], [.765, .622], [.85, .601], [.935, .58], [1, .562],
-]
-
-const bgCurveX = (fractionDown) => {
-  const y = Math.min(1, Math.max(0, fractionDown))
-  for (let i = 1; i < HERO_BG_CURVE.length; i += 1) {
-    const [y0, x0] = HERO_BG_CURVE[i - 1]
-    const [y1, x1] = HERO_BG_CURVE[i]
-    if (y <= y1) return x0 + (x1 - x0) * ((y - y0) / (y1 - y0))
-  }
-  return HERO_BG_CURVE[HERO_BG_CURVE.length - 1][1]
-}
-
-/* On phones the photo sits in a band under the copy, and its clipped edge is
-   meant to read as the same line the background hairline draws through the
-   copy. Where that line crosses the top of the band depends on how tall the
-   copy ran - which changes with language, font loading and viewport - so the
-   path is built from the measured layout instead of being a fixed curve. The
-   edge leaves the junction on the hairline's own near-vertical angle, then
-   sweeps left so the photo reaches full width at the bottom of the band. */
-function useHeroCurve() {
-  const heroRef = useRef(null)
-  const visualRef = useRef(null)
-  const copyRef = useRef(null)
-  const pathRef = useRef(null)
-
-  useEffect(() => {
-    const hero = heroRef.current
-    const visual = visualRef.current
-    const copy = copyRef.current
-    const path = pathRef.current
-    if (!hero || !visual || !copy || !path) return undefined
-
-    const stacked = window.matchMedia('(max-width: 760px), (max-width: 950px) and (max-height: 500px)')
-
-    const draw = () => {
-      /* Checked per call rather than once: a window resized across the
-         breakpoint, or a phone rotated, has to pick the join up again. */
-      if (!stacked.matches) return
-      const heroBox = hero.getBoundingClientRect()
-      const visualBox = visual.getBoundingClientRect()
-      if (!heroBox.height || !visualBox.height) return
-      const top = (visualBox.top - heroBox.top) / heroBox.height
-      const span = visualBox.height / heroBox.height
-      /* The hairline is placed across the hero, so its x fractions carry over
-         to the band once rescaled by the two widths. */
-      const widthRatio = heroBox.width / visualBox.width
-      /* What the eye follows is the olive edge drawn by .hero-visual::before,
-         which is the same shape shifted 8px left. Push the clip 8px right so
-         that edge - not the clip itself - lands on the hairline. */
-      const edgeOffset = 8 / visualBox.width
-      /* Beside the copy the edge sits on the hairline exactly, so the picture
-         occupies the nude panel and nothing crowds the text. Past the last line
-         it draws away, opening the picture out across the width it no longer
-         has to share. Easing the divergence in from zero is what keeps the
-         edge smooth where the two behaviours meet. */
-      const WIDEN = .30
-      const copyBox = copy.getBoundingClientRect()
-      const copyEnd = Math.min(.95, (copyBox.bottom - heroBox.top) / heroBox.height)
-      const widenAt = (u) => (u <= copyEnd ? 0 : WIDEN * ((u - copyEnd) / (1 - copyEnd)) ** 1.6)
-
-      /* At the very top the hairline sits at 88% of the width, which leaves the
-         picture starting just clear of the language button rather than running
-         under it. Pull that first stretch left far enough to tuck behind the
-         button, fading out within the header's own height so the curve below
-         is untouched. */
-      const TUCK = .14
-      const TUCK_SPAN = .12
-      const tuckAt = (u) => (u >= TUCK_SPAN ? 0 : TUCK * (1 - u / TUCK_SPAN) ** 2)
-
-      const at = (u) => Math.min(.98, Math.max(0,
-        bgCurveX(top + u * span) * widthRatio + edgeOffset - widenAt(u) - tuckAt(u)))
-
-      /* Sampled rather than fitted: the traced hairline is a table of points,
-         and following it directly keeps the photo's edge on the curve instead
-         of near it. 16 steps is under half a pixel of error at these sizes. */
-      const STEPS = 16
-      const edge = [`M ${at(0).toFixed(4)} 0`]
-      for (let i = 1; i <= STEPS; i += 1) {
-        const u = i / STEPS
-        edge.push(`L ${at(u).toFixed(4)} ${u.toFixed(4)}`)
-      }
-      path.setAttribute('d', `${edge.join(' ')} L 1 1 L 1 0 Z`)
-    }
-
-    draw()
-    const observer = new ResizeObserver(draw)
-    observer.observe(hero)
-    observer.observe(visual)
-    observer.observe(copy)
-    /* Webfonts land after first paint and reflow the copy, moving the join. */
-    if (document.fonts?.ready) document.fonts.ready.then(draw).catch(() => {})
-    stacked.addEventListener('change', draw)
-    return () => { observer.disconnect(); stacked.removeEventListener('change', draw) }
-  }, [])
-
-  return { heroRef, visualRef, copyRef, pathRef }
-}
-
 function App() {
   const { t } = useLanguage()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -503,8 +399,6 @@ function App() {
     return () => query.removeEventListener('change', onChange)
   }, [menuOpen])
 
-  const { heroRef, visualRef, copyRef, pathRef } = useHeroCurve()
-
   const closeMenu = () => setMenuOpen(false)
 
   return (
@@ -523,8 +417,8 @@ function App() {
       </header>
 
       <main>
-        <section className="hero" aria-labelledby="hero-title" ref={heroRef}>
-          <div className="hero-copy" data-reveal ref={copyRef}>
+        <section className="hero" aria-labelledby="hero-title">
+          <div className="hero-copy" data-reveal>
             <p className="eyebrow">{t('hero.eyebrow')}</p>
             <h1 id="hero-title">{t('hero.title')}</h1>
             <div className="ornament" aria-hidden="true"><i /></div>
@@ -536,20 +430,11 @@ function App() {
               </a>
             </div>
           </div>
-          <div className="hero-visual" data-reveal ref={visualRef}>
+          <div className="hero-visual" data-reveal>
             <svg className="hero-clip-defs" aria-hidden="true" focusable="false">
               <defs>
                 <clipPath id="hero-organic-clip" clipPathUnits="objectBoundingBox">
                   <path d="M .52 0 C .39 .07 .28 .19 .24 .36 C .20 .55 .18 .78 .14 1 L 1 1 L 1 0 Z" />
-                </clipPath>
-                {/* The curve above is in objectBoundingBox units, so it is read
-                    against the shape of the box it clips. On the desktop panel -
-                    tall and narrow - it is a gentle sweep; on the stacked mobile
-                    layout the box is short and wide, and the same numbers cut
-                    away 40% of the picture. This one takes the same corner but
-                    scaled for that box. */}
-                <clipPath id="hero-organic-clip-mobile" clipPathUnits="objectBoundingBox">
-                  <path ref={pathRef} d="M .17 0 C .08 .10 .03 .24 .015 .42 C .006 .62 0 .83 0 1 L 1 1 L 1 0 Z" />
                 </clipPath>
               </defs>
             </svg>
