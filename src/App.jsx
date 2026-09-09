@@ -1,6 +1,8 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { loadAnalytics, trackBooking, trackEvent, ACTIVITY_EVENT_ID } from './analytics.js'
 import { useDocumentHead } from './useDocumentHead.js'
+import { NAV_ORDER, ACTIVITY_PAGES, pagePath, pageById } from './routes.js'
+import { pageContent, ui as uiStrings, navLabels } from './content/index.js'
 import { LanguageProvider, languages, useLanguage } from './i18n.jsx'
 
 const Arrow = ({ diagonal = false }) => (
@@ -73,12 +75,9 @@ const FAN_OPACITY = [1, 0.86, 0.66, 0.46, 0.28]
 const WHATSAPP_URL = 'https://wa.me/21625434499'
 const MAPS_URL = 'https://www.google.com/maps/search/?api=1&query=Kelibia%2C%20Nabeul%20Governorate%2C%20Tunisia'
  
-const navItems = [
-  { key: 'nav.home', href: '#home' },
-  { key: 'nav.experiences', href: '#experiences' },
-  { key: 'nav.gallery', href: '#gallery' },
-  { key: 'nav.contact', href: '#contact' },
-]
+/* Built from routes.js so every link is a real localised URL. Adding a page
+   to NAV_ORDER puts it in the header and the footer in all three languages. */
+const navFor = (code) => NAV_ORDER.map((id) => ({ id, href: pagePath(id, code), label: navLabels(code)[id] }))
 
 // Selecting a language sets <html lang> so the choice is real; the copy itself
 // still needs a translation layer before the labels do anything visible.
@@ -129,8 +128,10 @@ function LanguageMenu() {
 }
 
 function Logo() {
+  const { code } = useLanguage()
+
   return (
-    <a className="logo" href="#home" aria-label="M'Caravane home">
+    <a className="logo" href={pagePath('home', code)} aria-label="M’Caravane Kelibia">
       <img src="/assets/logo.png" alt="M’Caravane Kelibia" width={843} height={296} />
     </a>
   )
@@ -399,18 +400,11 @@ function ActivityGrid() {
   )
 }
 
-function App() {
-  const { t, code } = useLanguage()
+/* The header, shared by every page. The mobile menu state lives here rather
+   than in the page, so a content page does not have to know about it. */
+function SiteHeader() {
+  const { code } = useLanguage()
   const [menuOpen, setMenuOpen] = useState(false)
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => entries.forEach((entry) => entry.isIntersecting && entry.target.setAttribute('data-visible', '')),
-      { threshold: 0.12 },
-    )
-    document.querySelectorAll('[data-reveal]').forEach((el) => observer.observe(el))
-    return () => observer.disconnect()
-  }, [])
 
   /* The mobile menu is a fixed full-screen overlay, so without this the page
      keeps scrolling underneath it on touch devices. */
@@ -421,8 +415,6 @@ function App() {
     return () => { document.body.style.overflow = previous }
   }, [menuOpen])
 
-  /* Rotating to landscape leaves the burger menu open over a layout that no
-     longer has a burger, trapping the page behind an overlay with no way out. */
   useEffect(() => {
     if (!menuOpen) return undefined
     const query = window.matchMedia('(min-width: 761px) and (min-height: 501px)')
@@ -431,28 +423,89 @@ function App() {
     return () => query.removeEventListener('change', onChange)
   }, [menuOpen])
 
-  useDocumentHead(code)
-
-  /* After hydration, so the tag is never on the critical path. */
-  useEffect(() => { loadAnalytics() }, [])
-
   const closeMenu = () => setMenuOpen(false)
 
   return (
-    <div className="site-shell">
       <header className="site-header" id="home">
         <Logo />
         <button className="menu-toggle" onClick={() => setMenuOpen(!menuOpen)} aria-expanded={menuOpen} aria-label="Toggle navigation">
           <span /><span />
         </button>
         <nav className={menuOpen ? 'main-nav is-open' : 'main-nav'} aria-label="Main navigation">
-          {navItems.map((item) => (
-            <a key={item.key} href={item.href} onClick={closeMenu}>{t(item.key)}</a>
+          {navFor(code).map((item) => (
+            <a key={item.id} href={item.href} onClick={closeMenu}>{item.label}</a>
           ))}
         </nav>
         <LanguageMenu />
       </header>
+  )
+}
 
+function SiteFooter() {
+  const { t, code } = useLanguage()
+
+  return (
+      <footer className="footer" id="contact">
+        {/* A single crest in the gallery's own colour, so the two sections read as one surface. */}
+        <svg className="footer-waves" viewBox="0 0 1440 300" preserveAspectRatio="none" aria-hidden="true">
+          <path className="swell-1" d="M0 0 H1440 V58 C1310 106 1190 96 1040 72 C850 42 690 88 492 92 C330 95 160 66 0 76 Z" />
+        </svg>
+        <div className="footer-grid">
+          <section className="footer-brand" data-reveal>
+            <h2>M’Caravane.</h2>
+            <p>{t('footer.tagline')}</p>
+            <span>{t('footer.motto')}</span>
+          </section>
+
+          <section className="footer-links" data-reveal>
+            <h3>{t('footer.links')}</h3>
+            <ul>
+              <li><a href={pagePath('home', code)}>{uiStrings(code).breadcrumbHome}</a></li>
+              {navFor(code).map((item) => <li key={item.id}><a href={item.href}>{item.label}</a></li>)}
+            </ul>
+          </section>
+
+          <section className="footer-panel" data-reveal>
+            <h3>{t('footer.contact')}</h3>
+            <ul>
+              <li><Phone /><a href="tel:+21625434499" onClick={() => trackEvent('phone_click', { language: code })}>+216 25 434 499</a></li>
+              <li><Mail /><a href="mailto:hello@mcaravane.tn" onClick={() => trackEvent('email_click', { language: code })}>hello@mcaravane.tn</a></li>
+              <li><Pin /><address>
+                <a href={MAPS_URL} target="_blank" rel="noreferrer">{t('footer.address')}</a>
+              </address></li>
+            </ul>
+          </section>
+
+          <section className="footer-social" data-reveal>
+            <figure className="footer-map">
+              <iframe
+                title={t('footer.map_title')}
+                src="https://www.openstreetmap.org/export/embed.html?bbox=11.0637%2C36.8278%2C11.1237%2C36.8678&amp;layer=mapnik&amp;marker=36.8478%2C11.0937"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+              <figcaption>
+                <Pin />
+                <a href={MAPS_URL} target="_blank" rel="noreferrer">
+                  {t('footer.directions')} <Arrow diagonal />
+                </a>
+              </figcaption>
+            </figure>
+          </section>
+        </div>
+
+        <div className="footer-bottom">
+          <a className="footer-visit" href="#home">{t('footer.top')} <Arrow /></a>
+          <p>{t('footer.rights')}</p>
+        </div>
+      </footer>
+  )
+}
+
+function Home() {
+  const { t, code } = useLanguage()
+
+  return (
       <main>
         <section className="hero" aria-labelledby="hero-title">
           <div className="hero-copy" data-reveal>
@@ -522,70 +575,145 @@ function App() {
 
         <ExperienceGallery />
       </main>
+  )
+}
 
-      <footer className="footer" id="contact">
-        {/* A single crest in the gallery's own colour, so the two sections read as one surface. */}
-        <svg className="footer-waves" viewBox="0 0 1440 300" preserveAspectRatio="none" aria-hidden="true">
-          <path className="swell-1" d="M0 0 H1440 V58 C1310 106 1190 96 1040 72 C850 42 690 88 492 92 C330 95 160 66 0 76 Z" />
-        </svg>
-        <div className="footer-grid">
-          <section className="footer-brand" data-reveal>
-            <h2>M’Caravane.</h2>
-            <p>{t('footer.tagline')}</p>
-            <span>{t('footer.motto')}</span>
+/* Every page that is not the homepage. One shape, driven by src/content: an
+   answer-first article whose h2s are the questions a visitor actually asks,
+   then the practical block, the booking call to action and the other
+   experiences. Sections with no supporting fact are simply absent from the
+   content, so nothing here renders an empty heading. */
+function ContentPage({ pageId }) {
+  const { t, code } = useLanguage()
+  const page = pageContent(code, pageId)
+  const ui = uiStrings(code)
+  const route = pageById(pageId)
+  const sections = page.sections ?? page.faq ?? []
+  const others = ACTIVITY_PAGES.filter((item) => item.id !== pageId)
+
+  return (
+    <main className="content-page">
+      <nav className="breadcrumb" aria-label={ui.breadcrumbLabel}>
+        <a href={pagePath('home', code)}>{ui.breadcrumbHome}</a>
+        <span aria-hidden="true">/</span>
+        <span aria-current="page">{page.h1}</span>
+      </nav>
+
+      <article className="content-body">
+        <header className="content-head" data-reveal>
+          <h1>{page.h1}</h1>
+          <div className="ornament" aria-hidden="true"><i /></div>
+          <p className="content-intro">{page.intro}</p>
+        </header>
+
+        {sections.map((section) => (
+          <section className="content-section" key={section.q} data-reveal>
+            <h2>{section.q}</h2>
+            {section.a.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
           </section>
+        ))}
 
-          <section className="footer-links" data-reveal>
-            <h3>{t('footer.links')}</h3>
-            <ul>
-              {navItems.map((item) => <li key={item.key}><a href={item.href}>{t(item.key)}</a></li>)}
-            </ul>
+        {route?.photos?.length ? (
+          <section className="content-photos" data-reveal>
+            <h2>{ui.photosTitle}</h2>
+            <div className="content-photo-grid">
+              {route.photos.map((id) => (
+                <img
+                  key={id}
+                  src={`/assets/gallery/web/${id}.jpg`}
+                  alt={t(`gallery.${id}`)}
+                  width={1400}
+                  height={933}
+                  loading="lazy"
+                  decoding="async"
+                />
+              ))}
+            </div>
           </section>
+        ) : null}
 
-          <section className="footer-panel" data-reveal>
-            <h3>{t('footer.contact')}</h3>
-            <ul>
-              <li><Phone /><a href="tel:+21625434499" onClick={() => trackEvent('phone_click', { language: code })}>+216 25 434 499</a></li>
-              <li><Mail /><a href="mailto:hello@mcaravane.tn" onClick={() => trackEvent('email_click', { language: code })}>hello@mcaravane.tn</a></li>
-              <li><Pin /><address>
-                <a href={MAPS_URL} target="_blank" rel="noreferrer">{t('footer.address')}</a>
-              </address></li>
-            </ul>
-          </section>
+        <aside className="content-practical" data-reveal>
+          <h2>{ui.practicalTitle}</h2>
+          <dl>
+            {page.duration ? (
+              <><dt>{ui.durationLabel}</dt><dd>{page.duration}</dd></>
+            ) : null}
+            {page.includes ? (
+              <><dt>{ui.includesLabel}</dt><dd>{page.includes}</dd></>
+            ) : null}
+            <dt>{ui.meetingLabel}</dt>
+            <dd>Hotel Kelibia Beach, Kélibia, Tunisia</dd>
+            <dt>{ui.languagesLabel}</dt>
+            <dd>Français · English · Italiano</dd>
+            <dt>{ui.bookingLabel}</dt>
+            <dd>
+              <a href="tel:+21625434499" onClick={() => trackEvent('phone_click', { language: code })}>+216 25 434 499</a>
+              {' · '}
+              <a href="mailto:hello@mcaravane.tn" onClick={() => trackEvent('email_click', { language: code })}>hello@mcaravane.tn</a>
+            </dd>
+          </dl>
+        </aside>
 
-          <section className="footer-social" data-reveal>
-            <figure className="footer-map">
-              <iframe
-                title={t('footer.map_title')}
-                src="https://www.openstreetmap.org/export/embed.html?bbox=11.0637%2C36.8278%2C11.1237%2C36.8678&amp;layer=mapnik&amp;marker=36.8478%2C11.0937"
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-              />
-              <figcaption>
-                <Pin />
-                <a href={MAPS_URL} target="_blank" rel="noreferrer">
-                  {t('footer.directions')} <Arrow diagonal />
-                </a>
-              </figcaption>
-            </figure>
-          </section>
-        </div>
+        <section className="content-cta" data-reveal>
+          <h2>{ui.ctaTitle}</h2>
+          <p>{ui.ctaText}</p>
+          <a
+            className="primary-button"
+            href={WHATSAPP_URL}
+            target="_blank"
+            rel="noreferrer"
+            onClick={() => trackBooking(route?.activity ?? 'general', code)}
+          >{t('hero.cta_secondary')} <Arrow diagonal /></a>
+        </section>
 
-        <div className="footer-bottom">
-          <a className="footer-visit" href="#home">{t('footer.top')} <Arrow /></a>
-          <p>{t('footer.rights')} <a href="#privacy">{t('footer.privacy')}</a> <span>|</span> <a href="#terms">{t('footer.terms')}</a></p>
-        </div>
-      </footer>
+        <nav className="content-related" data-reveal aria-label={ui.relatedTitle}>
+          <h2>{ui.relatedTitle}</h2>
+          <ul>
+            {others.map((item) => (
+              <li key={item.id}>
+                <a href={pagePath(item.id, code)}>{pageContent(code, item.id).h1} <Arrow /></a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </article>
+    </main>
+  )
+}
+
+function App({ pageId = 'home' }) {
+  const { code } = useLanguage()
+
+  useDocumentHead(code, pageId)
+
+  /* After hydration, so the tag is never on the critical path. */
+  useEffect(() => { loadAnalytics() }, [])
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => entries.forEach((entry) => entry.isIntersecting && entry.target.setAttribute('data-visible', '')),
+      { threshold: 0.12 },
+    )
+    document.querySelectorAll('[data-reveal]').forEach((el) => observer.observe(el))
+    return () => observer.disconnect()
+  }, [pageId])
+
+  return (
+    <div className="site-shell">
+      <SiteHeader />
+      {pageId === 'home' ? <Home /> : <ContentPage pageId={pageId} />}
+      <SiteFooter />
     </div>
   )
 }
 
+
 /* `language` is passed by the prerender, which renders one document per
    language. In the browser it is omitted and the provider reads the URL. */
-export default function Root({ language }) {
+export default function Root({ language, pageId }) {
   return (
     <LanguageProvider initialLanguage={language}>
-      <App />
+      <App pageId={pageId} />
     </LanguageProvider>
   )
 }

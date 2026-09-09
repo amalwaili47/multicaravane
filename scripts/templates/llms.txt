@@ -1,35 +1,34 @@
 # M'Caravane Kelibia
 
-> M'Caravane is a local activity operator in Kélibia, on Tunisia's Cap Bon
-> peninsula, running guided quad excursions, camel and horse rides on the beach,
-> and tours of the Kelibia Fort and museum. Guides speak French, English and
-> Italian, and every booking is made over WhatsApp.
+> Tourist activity operator in Kélibia, Tunisia, offering quad excursions, camel
+> and horse rides, and guided city and museum tours. Meeting point at Hotel
+> Kelibia Beach. Service in French, English and Italian.
 
 ## Activities
 
-- [Quad excursion]({{SITE_URL}}/en#experiences): dunes, coastal trails and pine forest with the Fort on the horizon; no experience needed, briefing and helmet included. Suits first-timers and groups wanting the adrenaline option. Runs 1h or 2h.
-- [Camel ride]({{SITE_URL}}/en#experiences): a caravan along El Mansoura beach at sunrise or sunset, on calm animals suited to families. Mint tea and photos included. Runs 30 min or 1h.
-- [Horse ride]({{SITE_URL}}/en#experiences): the same shoreline route on horseback, with longer options for confident riders. Booked alongside the camel ride.
-- [City and museum tour]({{SITE_URL}}/en#experiences): the Byzantine Fort, the old harbour and the museum's Punic and Roman collection with a guide; Kerkouane optional. Runs 3h or a half day.
+- [Quad excursion]({{SITE_URL}}/en/quad-biking-kelibia): guided ride over the dunes, coastal trails and pine forest of Kélibia; one or two hours, briefing, helmet, guide, water and a souvenir photo included, no experience needed.
+- [Camel ride]({{SITE_URL}}/en/camel-ride-kelibia): a caravan along El Mansoura beach at sunrise or sunset; thirty minutes or one hour, on calm animals suited to families, with mint tea and photos included.
+- [Horse ride]({{SITE_URL}}/en/horse-riding-kelibia): the same shoreline at El Mansoura on horseback; thirty minutes or one hour, with longer routes for confident riders, guide and helmet included.
+- [City and museum tour]({{SITE_URL}}/en/kelibia-city-museum-tour): the Byzantine Fort, the old harbour and the museum's Punic and Roman collections with a guide; three hours or a half day, entrance fees and local transport included, Kerkouane optional.
+- [All activities]({{SITE_URL}}/en/activities): the four experiences side by side; two or more can be combined into one day.
 
 ## Practical information
 
-- Location: Hotel Kelibia Beach, Kélibia, Tunisia
+- Meeting point: Hotel Kelibia Beach, Kélibia, Tunisia
 - Languages: French, English, Italian
 - Booking: WhatsApp +216 25 434 499
 - Email: hello@mcaravane.tn
-- All experiences are guided, insured and beginner-friendly, and run in small groups.
+- All experiences are guided, insured and beginner-friendly, and run in small groups with local guides.
+- Prices are not published on the site; they are quoted over WhatsApp.
+- [Practical information and FAQ]({{SITE_URL}}/en/practical-information)
+- [About M'Caravane]({{SITE_URL}}/en/about-us)
+- [Contact and booking]({{SITE_URL}}/en/contact)
 
-## Pages
+## Languages
 
-- [Home (English)]({{SITE_URL}}/en)
-- [Accueil (français)]({{SITE_URL}}/fr)
-- [Home (italiano)]({{SITE_URL}}/it)
-- [Contact]({{SITE_URL}}/en#contact)
-
-## Notes
-
-The site is a single page per language. Activities, gallery and contact details
-are sections of that page, addressed by the anchors above; there are no separate
-activity pages. Prices are not published on the site - they are quoted over
-WhatsApp.
+This site is available in [French]({{SITE_URL}}/fr), [English]({{SITE_URL}}/en)
+and [Italian]({{SITE_URL}}/it). Every page exists in all three, on its own
+localised URL — for example the quad excursion is
+[/fr/quad-kelibia]({{SITE_URL}}/fr/quad-kelibia),
+[/en/quad-biking-kelibia]({{SITE_URL}}/en/quad-biking-kelibia) and
+[/it/escursione-quad-kelibia]({{SITE_URL}}/it/escursione-quad-kelibia).

@@ -2,11 +2,11 @@
    the search-visibility contract end to end. Run after `npm run build`. */
 import { execFileSync } from 'node:child_process'
 import { createServer } from 'node:http'
-import { existsSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { extname, resolve } from 'node:path'
 
 const DIST = resolve('dist')
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://www.multicaravane.com').replace(/\/+$/, '')
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://multicaravane.com').replace(/\/+$/, '')
 const TYPES = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css',
   '.xml': 'application/xml; charset=utf-8', '.txt': 'text/plain; charset=utf-8',
@@ -24,6 +24,8 @@ const server = createServer((req, res) => {
   res.end(readFileSync(file))
 })
 
+const { pagePath: pagePathOf, DEFAULT_LANGUAGE: DEFAULT_LANG } = await import('../.ssr/entry-server.js')
+const linkGraph = new Map()
 const results = []
 const check = (name, ok, detail = '') => results.push({ name, ok, detail })
 
@@ -77,59 +79,95 @@ const llmsHosts = [...new Set([...llms.body.matchAll(/https?:\/\/([^/)\s]+)/g)].
 check('llms.txt uses only the canonical host', llmsHosts.every((h) => `https://${h}` === SITE_URL), llmsHosts.join(', '))
 check('sitemap.xml served as application/xml', sitemap.type.startsWith('application/xml'), sitemap.type)
 
-/* 4-7 - the documents */
-const PAGES = { '/': 'en', '/en': 'en', '/fr': 'fr', '/it': 'it' }
+/* 4-7 - every document */
+const { allRoutes } = await import('../.ssr/entry-server.js')
+const routes = allRoutes()
+check('27 routes in the config', routes.length === 27, `${routes.length}`)
+
 const seen = { title: new Map(), description: new Map() }
-for (const [path, lang] of Object.entries(PAGES)) {
+const langOf = { fr: /[àâçéèêëîïôùûœ]|de la |et |sur |vous /i, it: /[àèéìòù]|della |degli |sulla |prenota/i }
+
+for (const { pageId, code, path } of [{ pageId: 'home', code: DEFAULT_LANG, path: '/' }, ...routes]) {
   const page = await get(path)
-  check(`${path} 200`, page.status === 200)
+  if (page.status !== 200) { check(`${path} 200`, false, String(page.status)); continue }
 
   const canonicals = [...page.body.matchAll(/<link[^>]+rel="canonical"[^>]+href="([^"]+)"/g)].map((m) => m[1])
-  const expected = `${SITE_URL}/${lang}`
-  check(`${path} exactly one canonical, self-referencing`,
-    canonicals.length === 1 && canonicals[0] === expected, canonicals.join(', '))
+  const expected = `${SITE_URL}${pagePathOf(pageId, code)}`
+  check(`${path} one self-referencing canonical`,
+    canonicals.length === 1 && canonicals[0] === expected, canonicals.join(', ') || 'none')
 
   const hreflangs = [...page.body.matchAll(/rel="alternate" hreflang="([^"]+)"/g)].map((m) => m[1]).sort()
-  check(`${path} has all four hreflang alternates`,
-    hreflangs.join(',') === 'en,fr,it,x-default', hreflangs.join(','))
+  check(`${path} four hreflang alternates`, hreflangs.join(',') === 'en,fr,it,x-default', hreflangs.join(','))
+  const selfRef = page.body.includes(`hreflang="${code}" href="${expected}"`)
+  check(`${path} hreflang includes its own self-reference`, selfRef)
 
-  check(`${path} <html lang> is ${lang}`, page.body.includes(`<html lang="${lang}">`))
+  check(`${path} html lang=${code}`, page.body.includes(`<html lang="${code}">`))
 
   const title = page.body.match(/<title[^>]*>([^<]+)<\/title>/)?.[1] ?? ''
   const description = page.body.match(/<meta[^>]+name="description"[^>]+content="([^"]+)"/)?.[1] ?? ''
-  const titles = [...page.body.matchAll(/<title[^>]*>/g)].length
-  const descriptions = [...page.body.matchAll(/<meta[^>]+name="description"/g)].length
-  check(`${path} one non-empty title (${title.length} chars)`, titles === 1 && title.length >= 50 && title.length <= 60)
-  check(`${path} one non-empty description (${description.length} chars)`,
-    descriptions === 1 && description.length >= 140 && description.length <= 160)
-  seen.title.set(path, title)
-  seen.description.set(path, description)
+  check(`${path} one title, 50-60 chars`,
+    [...page.body.matchAll(/<title[^>]*>/g)].length === 1 && title.length >= 50 && title.length <= 60, `${title.length}`)
+  check(`${path} one description, 140-160 chars`,
+    [...page.body.matchAll(/<meta[^>]+name="description"/g)].length === 1
+      && description.length >= 140 && description.length <= 160, `${description.length}`)
+  if (path !== '/') { seen.title.set(path, title); seen.description.set(path, description) }
 
   const blocks = [...page.body.matchAll(/<script[^>]+application\/ld\+json[^>]*>([\s\S]*?)<\/script>/g)]
   check(`${path} exactly one JSON-LD block`, blocks.length === 1)
   let graph = null
   try { graph = JSON.parse(blocks[0][1]) } catch (error) { check(`${path} JSON-LD parses`, false, error.message) }
   if (graph) {
-    check(`${path} JSON-LD parses`, true)
-    const ids = new Set(graph['@graph'].map((node) => node['@id']))
-    const orphans = graph['@graph']
-      .filter((node) => node.provider && !ids.has(node.provider['@id']))
-      .map((node) => node['@id'])
-    check(`${path} JSON-LD has no orphan provider references`, orphans.length === 0, orphans.join(', '))
-    const empties = graph['@graph'].flatMap((node) => Object.entries(node)
-      .filter(([, v]) => v === '' || v === null || v === undefined)
+    const nodes = graph['@graph']
+    const ids = new Set(nodes.map((node) => node['@id']).filter(Boolean))
+    const dangling = nodes.flatMap((node) =>
+      (node.provider && !ids.has(node.provider['@id'])) ? [`${node['@id']} -> ${node.provider['@id']}`] : [])
+    check(`${path} JSON-LD no dangling @id references`, dangling.length === 0, dangling.join(', '))
+    /* sameAs is deliberately [] - no social profile exists in the repo to put
+       in it - so an empty array there is the correct output, not a gap. */
+    const empties = nodes.flatMap((node) => Object.entries(node)
+      .filter(([k, v]) => k !== 'sameAs'
+        && (v === '' || v === null || v === undefined || (Array.isArray(v) && v.length === 0)))
       .map(([k]) => `${node['@id']}.${k}`))
-    check(`${path} JSON-LD has no empty fields`, empties.length === 0, empties.join(', '))
-    check(`${path} JSON-LD localised`, graph['@graph'].some((n) => n['@type'] === 'Service'))
+    check(`${path} JSON-LD no empty required fields`, empties.length === 0, empties.join(', '))
+
+    /* Every FAQ answer in the schema has to be text a visitor can see. */
+    const faq = nodes.find((node) => node['@type'] === 'FAQPage')
+    if (faq) {
+      const visible = page.body.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<[^>]+>/g, ' ')
+      const missing = faq.mainEntity.filter((q) => !visible.includes(q.name.slice(0, 30)))
+      check(`${path} every FAQ question is visible on the page`, missing.length === 0, `${missing.length} missing`)
+    }
+    const crumb = nodes.find((node) => node['@type'] === 'BreadcrumbList')
+    /* The homepage shows no breadcrumb trail, so it emits no BreadcrumbList. */
+    check(`${path} breadcrumb node matches the page`, pageId === 'home' ? !crumb : Boolean(crumb))
   }
+
+  /* Reachability: every page is linked from the homepage or from a page the
+     homepage links to. */
+  linkGraph.set(path, [...page.body.matchAll(/href="(\/[a-z]{2}(?:\/[a-z0-9-]+)?)"/g)].map((m) => m[1]))
 }
 
-/* Uniqueness across the language versions (/ and /en are the same document by
-   design, so they are compared as one). */
-const uniqueTitles = new Set([...seen.title.entries()].filter(([p]) => p !== '/').map(([, v]) => v))
-const uniqueDescriptions = new Set([...seen.description.entries()].filter(([p]) => p !== '/').map(([, v]) => v))
-check('each language has its own title', uniqueTitles.size === 3, `${uniqueTitles.size} distinct`)
-check('each language has its own description', uniqueDescriptions.size === 3, `${uniqueDescriptions.size} distinct`)
+/* 12 - two clicks from the homepage, in each language */
+for (const code of ['fr', 'en', 'it']) {
+  const home = `/${code}`
+  const first = new Set(linkGraph.get(home) ?? [])
+  const second = new Set([...first].flatMap((p) => linkGraph.get(p) ?? []))
+  const reachable = new Set([home, ...first, ...second])
+  const missing = routes.filter((r) => r.code === code).map((r) => r.path).filter((p) => !reachable.has(p))
+  check(`every ${code} page is within two clicks of ${home}`, missing.length === 0, missing.join(', '))
+}
+
+/* Uniqueness across all 27 */
+check('all 27 titles unique', new Set(seen.title.values()).size === 27, `${new Set(seen.title.values()).size}`)
+check('all 27 descriptions unique', new Set(seen.description.values()).size === 27, `${new Set(seen.description.values()).size}`)
+
+/* 8 - exactly one GA installation */
+const bundles = readdirSync(resolve(DIST, 'assets')).filter((f) => f.endsWith('.js'))
+const bundleSource = bundles.map((f) => readFileSync(resolve(DIST, 'assets', f), 'utf8')).join('')
+const gaLoaders = [...bundleSource.matchAll(/googletagmanager\.com\/gtag\/js/g)].length
+check('exactly one GA4 loader in the bundle', gaLoaders === 1, `${gaLoaders}`)
+const inlineGa = (await get('/en')).body.includes('googletagmanager')
+check('no second GA tag hardcoded in the HTML', inlineGa === false)
 
 server.close()
 

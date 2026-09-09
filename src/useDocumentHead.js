@@ -14,9 +14,9 @@ function replaceOwned(selector, build) {
   })
 }
 
-export function useDocumentHead(code) {
+export function useDocumentHead(code, pageId = 'home') {
   useEffect(() => {
-    const head = describeHead(code)
+    const head = describeHead(code, pageId)
 
     document.documentElement.lang = head.lang
     document.title = head.title
@@ -48,5 +48,5 @@ export function useDocumentHead(code) {
       el.textContent = JSON.stringify(head.jsonLd)
       return [el]
     })
-  }, [code])
+  }, [code, pageId])
 }
