@@ -86,6 +86,11 @@ export const translations = {
     'footer.top': 'Back to top',
     'footer.address': 'Kelibia, Nabeul Governorate, Tunisia',
     'footer.directions': 'Get directions',
+    'hero.image_alt': 'A caravan of camels and their riders walking along the shoreline on Kelibia beach',
+    'camel.image_alt': 'Riders on camels crossing the sand beside the sea at El Mansoura',
+    'quad.image_alt': 'A quad bike on a sandy coastal trail near Kelibia',
+    'city.image_alt': 'The Byzantine fort above the old harbour of Kelibia',
+    'footer.map_title': 'Map showing Kelibia, Nabeul Governorate, Tunisia',
   },
 
   fr: {
@@ -162,6 +167,11 @@ export const translations = {
     'footer.top': 'Retour en haut',
     'footer.address': 'Kélibia, gouvernorat de Nabeul, Tunisie',
     'footer.directions': 'Itinéraire',
+    'hero.image_alt': 'Une caravane de dromadaires et leurs cavaliers longeant le rivage sur la plage de Kélibia',
+    'camel.image_alt': 'Des cavaliers à dromadaire traversant le sable au bord de la mer à El Mansoura',
+    'quad.image_alt': 'Un quad sur un sentier côtier sablonneux près de Kélibia',
+    'city.image_alt': 'Le fort byzantin au-dessus du vieux port de Kélibia',
+    'footer.map_title': 'Carte situant Kélibia, gouvernorat de Nabeul, Tunisie',
   },
 
   it: {
@@ -238,6 +248,11 @@ export const translations = {
     'footer.top': 'Torna su',
     'footer.address': 'Kelibia, governatorato di Nabeul, Tunisia',
     'footer.directions': 'Come arrivare',
+    'hero.image_alt': 'Una carovana di cammelli e i loro cavalieri lungo la riva sulla spiaggia di Kelibia',
+    'camel.image_alt': 'Cavalieri in groppa ai cammelli sulla sabbia in riva al mare a El Mansoura',
+    'quad.image_alt': 'Un quad su un sentiero costiero sabbioso vicino a Kelibia',
+    'city.image_alt': 'Il forte bizantino sopra il vecchio porto di Kelibia',
+    'footer.map_title': 'Mappa di Kelibia, governatorato di Nabeul, Tunisia',
   },
 }
 
@@ -246,10 +261,20 @@ const LanguageContext = createContext(null)
 
 const isKnown = (code) => languages.some((item) => item.code === code)
 
-// ?lang=fr wins so a language can be linked or shared; otherwise the visitor's
-// last choice; otherwise English.
+/* Each language is served from its own path - /fr, /en, /it - so it has a URL
+   that can be canonicalised, linked as an hreflang alternate and listed in the
+   sitemap. `/` serves the default language. */
+export const languageFromPath = (pathname = '') => {
+  const first = pathname.split('/').filter(Boolean)[0]
+  return isKnown(first) ? first : null
+}
+
+// The path wins, then ?lang=fr - kept working so older shared links still land
+// on the right language - then the visitor's last choice, then English.
 const readInitial = () => {
   try {
+    const fromPath = languageFromPath(window.location.pathname)
+    if (fromPath) return fromPath
     const fromUrl = new URLSearchParams(window.location.search).get('lang')
     if (isKnown(fromUrl)) return fromUrl
     const stored = localStorage.getItem(STORAGE_KEY)
@@ -258,12 +283,38 @@ const readInitial = () => {
   return DEFAULT_LANGUAGE
 }
 
-export function LanguageProvider({ children }) {
-  const [code, setCode] = useState(readInitial)
+export function LanguageProvider({ children, initialLanguage }) {
+  /* The prerender passes the language it is rendering; in the browser it is
+     read off the URL. */
+  const [code, setCode] = useState(() => (isKnown(initialLanguage) ? initialLanguage : readInitial()))
+
+  /* The document arrives prerendered in one language, so that is what the
+     first client render has to be. Once mounted, the visitor's own preference
+     - their path, their ?lang=, their last choice - takes over. */
+  useEffect(() => {
+    const preferred = readInitial()
+    if (preferred !== code) setCode(preferred)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     document.documentElement.lang = code
     try { localStorage.setItem(STORAGE_KEY, code) } catch { /* private mode */ }
+
+    /* Keep the address bar on the language being shown, so the page can be
+       shared and so a reload serves the matching prerendered document. Only
+       rewritten when it is already a language path or the bare root - a URL
+       shape this code did not create is left alone. */
+    try {
+      const { pathname, search, hash } = window.location
+      const current = languageFromPath(pathname)
+      if (current !== code && (current || pathname === '/')) {
+        const params = new URLSearchParams(search)
+        params.delete('lang')
+        const query = params.toString()
+        window.history.replaceState(null, '', `/${code}${query ? `?${query}` : ''}${hash}`)
+      }
+    } catch { /* no history API */ }
   }, [code])
 
   const value = useMemo(() => ({

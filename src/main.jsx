@@ -1,10 +1,17 @@
 import React from 'react'
-import { createRoot } from 'react-dom/client'
+import { createRoot, hydrateRoot } from 'react-dom/client'
 import App from './App.jsx'
 import './styles.css'
 
-createRoot(document.getElementById('root')).render(
+const container = document.getElementById('root')
+const tree = (
   <React.StrictMode>
-    <App />
-  </React.StrictMode>,
+    {/* The language the document was prerendered as, so the first client render
+        matches the served markup. The provider reconciles it with the visitor's
+        own preference after mount. */}
+    <App language={document.documentElement.lang} />
+  </React.StrictMode>
 )
+
+if (container.hasChildNodes()) hydrateRoot(container, tree)
+else createRoot(container).render(tree)

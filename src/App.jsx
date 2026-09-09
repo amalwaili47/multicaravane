@@ -1,4 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { loadAnalytics, trackBooking, trackEvent, ACTIVITY_EVENT_ID } from './analytics.js'
+import { useDocumentHead } from './useDocumentHead.js'
 import { LanguageProvider, languages, useLanguage } from './i18n.jsx'
 
 const Arrow = ({ diagonal = false }) => (
@@ -19,14 +21,15 @@ const SunWave = () => (
   </svg>
 )
 
+const Mail = () => <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v12H3z"/><path d="m3 7 9 6 9-6"/></svg>
 const Phone = () => <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3 4 5c-1 1-1 3 0 5 2 5 5 8 10 10 2 1 4 1 5 0l2-3-5-3-2 2c-3-1-5-3-6-6l2-2-3-5Z"/></svg>
 const Globe = () => <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 2.5 15.4 0 18M12 3c-2.5 2.6-2.5 15.4 0 18"/></svg>
 const Pin = () => <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
 
 const activities = [
-  { id: 'camel', className: 'camel', image: '/assets/camel-rides.jpg' },
-  { id: 'quad', className: 'quad', image: '/assets/quad-ride.jpg' },
-  { id: 'city', className: 'city', image: '/assets/city-museum.jpg' },
+  { id: 'camel', className: 'camel', image: '/assets/camel-rides.jpg', width: 1264, height: 842 },
+  { id: 'quad', className: 'quad', image: '/assets/quad-ride.jpg', width: 1400, height: 764 },
+  { id: 'city', className: 'city', image: '/assets/city-museum.jpg', width: 1246, height: 864 },
 ]
 
 
@@ -57,6 +60,10 @@ const formatMonth = (iso, code) => {
 // Visible window of the fan: three cards either side of centre, plus a faded "shoulder"
 // card at distance 4 sitting just outside each arrow — on the group's line, never under the icon.
 const FAN_LEFT = 4
+/* useLayoutEffect has nothing to do while the page is being rendered to a
+   string at build time, and React warns if it is called there. */
+const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
+
 const FAN_RIGHT = 4
 const SHOULDER = 4
 const FAN_SCALE = [1, 0.82, 0.68, 0.56, 0.44]
@@ -124,7 +131,7 @@ function LanguageMenu() {
 function Logo() {
   return (
     <a className="logo" href="#home" aria-label="M'Caravane home">
-      <img src="/assets/logo.png" alt="M’Caravane Kelibia" />
+      <img src="/assets/logo.png" alt="M’Caravane Kelibia" width={843} height={296} />
     </a>
   )
 }
@@ -211,7 +218,14 @@ function ExperienceGallery() {
                 aria-hidden={!visible}
                 aria-label={t(`gallery.${item.id}`)}
               >
-                <img src={item.image} alt={t(`gallery.${item.id}`)} loading={distance <= 1 ? 'eager' : 'lazy'} />
+                <img
+                  src={item.image}
+                  alt={t(`gallery.${item.id}`)}
+                  width={1400}
+                  height={933}
+                  loading={distance <= 1 ? 'eager' : 'lazy'}
+                  decoding="async"
+                />
               </button>
             )
           })}
@@ -233,7 +247,7 @@ function ExperienceGallery() {
 const EASE = 'cubic-bezier(.16,1,.3,1)'
 
 function ActivityCard({ activity, index, open, hidden, onToggle }) {
-  const { t } = useLanguage()
+  const { t, code } = useLanguage()
   const title = t(`${activity.id}.title`)
 
   // The description no longer lives here: when a card is picked the grid hands it
@@ -249,7 +263,14 @@ function ActivityCard({ activity, index, open, hidden, onToggle }) {
       style={{ '--delay': `${index * 120}ms` }}
     >
       <div className={`activity-card ${activity.className}`}>
-        <img src={activity.image} alt={title} />
+        <img
+          src={activity.image}
+          alt={t(`${activity.id}.image_alt`)}
+          width={activity.width}
+          height={activity.height}
+          loading="lazy"
+          decoding="async"
+        />
         <button
           type="button"
           className="activity-toggle"
@@ -260,7 +281,12 @@ function ActivityCard({ activity, index, open, hidden, onToggle }) {
         />
         <div className="activity-card-content">
           <h3>{title}</h3>
-          <a href={WHATSAPP_URL} target="_blank" rel="noreferrer">{t('hero.cta_secondary')}</a>
+          <a
+            href={WHATSAPP_URL}
+            target="_blank"
+            rel="noreferrer"
+            onClick={() => trackBooking(ACTIVITY_EVENT_ID[activity.id], code)}
+          >{t('hero.cta_secondary')}</a>
           <p className="activity-tagline">{t(`${activity.id}.tagline`)}</p>
         </div>
         <span className="activity-cue" aria-hidden="true"><Chevron /></span>
@@ -270,7 +296,7 @@ function ActivityCard({ activity, index, open, hidden, onToggle }) {
 }
 
 function ActivityGrid() {
-  const { t } = useLanguage()
+  const { t, code } = useLanguage()
   const [openId, setOpenId] = useState(null)
   const gridRef = useRef(null)
   // Rects captured on click, i.e. before React commits the new layout - the "first"
@@ -287,7 +313,7 @@ function ActivityGrid() {
     setOpenId((current) => (current === id ? null : id))
   }
 
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const first = firstFrame.current
     firstFrame.current = null
     const grid = gridRef.current
@@ -356,7 +382,13 @@ function ActivityGrid() {
           <h3>{t(`${openActivity.id}.title`)}</h3>
           <p className="activity-text">{t(`${openActivity.id}.description`)}</p>
           <div className="activity-detail-actions">
-            <a className="primary-button" href={WHATSAPP_URL} target="_blank" rel="noreferrer">{t('hero.cta_secondary')}</a>
+            <a
+              className="primary-button"
+              href={WHATSAPP_URL}
+              target="_blank"
+              rel="noreferrer"
+              onClick={() => trackBooking(ACTIVITY_EVENT_ID[openActivity.id], code)}
+            >{t('hero.cta_secondary')}</a>
             <button type="button" className="activity-back" onClick={() => toggle(openActivity.id)}>
               <i aria-hidden="true">&gt;</i> {t('exp.back')}
             </button>
@@ -368,7 +400,7 @@ function ActivityGrid() {
 }
 
 function App() {
-  const { t } = useLanguage()
+  const { t, code } = useLanguage()
   const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
@@ -399,6 +431,11 @@ function App() {
     return () => query.removeEventListener('change', onChange)
   }, [menuOpen])
 
+  useDocumentHead(code)
+
+  /* After hydration, so the tag is never on the critical path. */
+  useEffect(() => { loadAnalytics() }, [])
+
   const closeMenu = () => setMenuOpen(false)
 
   return (
@@ -425,7 +462,13 @@ function App() {
             <p className="hero-text">{t('hero.subtitle')}</p>
             <div className="hero-actions">
               <a className="primary-button" href="#experiences">{t('hero.cta_primary')}</a>
-              <a className="secondary-button" href={WHATSAPP_URL} target="_blank" rel="noreferrer">
+              <a
+                className="secondary-button"
+                href={WHATSAPP_URL}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => trackBooking('general', code)}
+              >
                 {t('hero.cta_secondary')} <Arrow diagonal />
               </a>
             </div>
@@ -439,7 +482,14 @@ function App() {
               </defs>
             </svg>
             <div className="hero-frame">
-              <img src="/assets/ca.png" alt="Placeholder for a camel caravan on Kelibia beach" />
+              <img
+                src="/assets/ca.png"
+                alt={t('hero.image_alt')}
+                width={1672}
+                height={941}
+                fetchPriority="high"
+                decoding="async"
+              />
             </div>
           </div>
           <div className="scroll-cue" aria-hidden="true"><span>Scroll to discover</span><i /></div>
@@ -461,7 +511,13 @@ function App() {
             <h2 id="banner-title">{t('banner.title')}</h2>
             <p className="destination-text">{t('banner.text')}</p>
           </div>
-          <a className="text-link" href={WHATSAPP_URL} target="_blank" rel="noreferrer">{t('banner.cta')} <Arrow /></a>
+          <a
+            className="text-link"
+            href={WHATSAPP_URL}
+            target="_blank"
+            rel="noreferrer"
+            onClick={() => trackBooking('general', code)}
+          >{t('banner.cta')} <Arrow /></a>
         </section>
 
         <ExperienceGallery />
@@ -489,7 +545,8 @@ function App() {
           <section className="footer-panel" data-reveal>
             <h3>{t('footer.contact')}</h3>
             <ul>
-              <li><Phone /><a href="tel:+21625434499">+216 25 434 499</a></li>
+              <li><Phone /><a href="tel:+21625434499" onClick={() => trackEvent('phone_click', { language: code })}>+216 25 434 499</a></li>
+              <li><Mail /><a href="mailto:hello@mcaravane.tn" onClick={() => trackEvent('email_click', { language: code })}>hello@mcaravane.tn</a></li>
               <li><Pin /><address>
                 <a href={MAPS_URL} target="_blank" rel="noreferrer">{t('footer.address')}</a>
               </address></li>
@@ -499,7 +556,7 @@ function App() {
           <section className="footer-social" data-reveal>
             <figure className="footer-map">
               <iframe
-                title="Map of Kelibia, Nabeul Governorate, Tunisia"
+                title={t('footer.map_title')}
                 src="https://www.openstreetmap.org/export/embed.html?bbox=11.0637%2C36.8278%2C11.1237%2C36.8678&amp;layer=mapnik&amp;marker=36.8478%2C11.0937"
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
@@ -523,9 +580,11 @@ function App() {
   )
 }
 
-export default function Root() {
+/* `language` is passed by the prerender, which renders one document per
+   language. In the browser it is omitted and the provider reads the URL. */
+export default function Root({ language }) {
   return (
-    <LanguageProvider>
+    <LanguageProvider initialLanguage={language}>
       <App />
     </LanguageProvider>
   )
