@@ -6,13 +6,19 @@
      dist/index.html  ->  /       x-default, default language, canonical /en
      dist/en.html     ->  /en
      dist/fr.html     ->  /fr
-     dist/it.html     ->  /it     */
+     dist/it.html     ->  /it
+
+   robots.txt and llms.txt are written here too, from scripts/templates, so the
+   host in them comes from the same NEXT_PUBLIC_SITE_URL as everything else
+   rather than being typed into a static file. */
 import { execFileSync } from 'node:child_process'
-import { readFileSync, statSync, writeFileSync } from 'node:fs'
-import { resolve } from 'node:path'
-import { render, languages, DEFAULT_LANGUAGE, SITE_URL, X_DEFAULT_URL, localeUrl } from '../.ssr/entry-server.js'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
+import { render, languages, DEFAULT_LANGUAGE, SITE_URL, ROUTES, localeUrl, alternatesFor } from '../.ssr/entry-server.js'
 
 const NL = '\n'
+/* The files a page's content is built from, for the lastmod lookup. */
+const CONTENT_SOURCES = ['src/i18n.jsx', 'src/App.jsx']
 const DIST = resolve('dist')
 const template = readFileSync(resolve(DIST, 'index.html'), 'utf8')
 
@@ -41,8 +47,8 @@ function headHtml(head) {
   return lines.join('\n')
 }
 
-function document(code) {
-  const { html, head } = render(code)
+function document(code, path) {
+  const { html, head } = render(code, path)
   return template
     .replace('<html lang="en">', `<html lang="${escapeAttr(head.lang)}">`)
     /* The shell's own title and description are replaced, not appended to, so
@@ -53,45 +59,72 @@ function document(code) {
     .replace('<div id="root"></div>', `<div id="root">${html}</div>`)
 }
 
-/* A real date for lastmod: the last commit that touched the content, falling
-   back to the file's mtime outside a git checkout. */
-function contentDate() {
-  const sources = ['src/i18n.jsx', 'src/App.jsx']
+/* The date the content itself last changed, from the last commit that touched
+   the files a page is built out of. Returns null - and the entry then carries
+   no <lastmod> at all - when that cannot be established: a shallow clone with
+   no history, or a build from outside git. A file mtime is not usable as a
+   fallback because on a fresh checkout it is the build time, which is exactly
+   the wrong answer to publish. */
+function contentDate(sources) {
   try {
     const iso = execFileSync('git', ['log', '-1', '--format=%cI', '--', ...sources], { encoding: 'utf8' }).trim()
-    if (iso) return iso.slice(0, 10)
-  } catch { /* not a git checkout */ }
-  return new Date(Math.max(...sources.map((f) => statSync(resolve(f)).mtimeMs))).toISOString().slice(0, 10)
+    return iso ? iso.slice(0, 10) : null
+  } catch {
+    return null
+  }
 }
 
-function sitemap(lastmod) {
-  const alternates = [
-    ...languages.map((item) => ({ hreflang: item.code, href: localeUrl(item.code) })),
-    { hreflang: 'x-default', href: X_DEFAULT_URL },
-  ]
-  const entries = languages.map((item) => [
-    '  <url>',
-    `    <loc>${localeUrl(item.code)}</loc>`,
-    ...alternates.map((alt) =>
-      `    <xhtml:link rel="alternate" hreflang="${alt.hreflang}" href="${escapeAttr(alt.href)}" />`),
-    `    <lastmod>${lastmod}</lastmod>`,
-    '    <changefreq>monthly</changefreq>',
-    '  </url>',
-  ].join('\n')).join('\n')
+function sitemap() {
+  const entries = ROUTES.flatMap((route) => {
+    const alternates = alternatesFor(route.path)
+    const lastmod = contentDate(route.sources ?? CONTENT_SOURCES)
+    return languages.map((item) => [
+      '  <url>',
+      `    <loc>${escapeAttr(localeUrl(item.code, route.path))}</loc>`,
+      ...alternates.map((alt) =>
+        `    <xhtml:link rel="alternate" hreflang="${alt.hreflang}" href="${escapeAttr(alt.href)}" />`),
+      ...(lastmod ? [`    <lastmod>${lastmod}</lastmod>`] : []),
+      ...(route.changefreq ? [`    <changefreq>${route.changefreq}</changefreq>`] : []),
+      '  </url>',
+    ].join(NL))
+  })
 
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"',
     '        xmlns:xhtml="http://www.w3.org/1999/xhtml">',
-    entries,
+    ...entries,
     '</urlset>',
     '',
   ].join(NL)
 }
 
-writeFileSync(resolve(DIST, 'index.html'), document(DEFAULT_LANGUAGE))
-for (const item of languages) writeFileSync(resolve(DIST, `${item.code}.html`), document(item.code))
+/* Text files whose only variable is the host. */
+function writeTemplate(name) {
+  const body = readFileSync(resolve('scripts/templates', name), 'utf8').replaceAll('{{SITE_URL}}', SITE_URL)
+  writeFileSync(resolve(DIST, name), body)
+}
 
-const lastmod = contentDate()
-writeFileSync(resolve(DIST, 'sitemap.xml'), sitemap(lastmod))
-console.log(`prerendered / ${languages.map((l) => `/${l.code}`).join(' ')} and sitemap.xml (lastmod ${lastmod}) at ${SITE_URL}`)
+function write(file, body) {
+  mkdirSync(dirname(file), { recursive: true })
+  writeFileSync(file, body)
+}
+
+/* `/` is the default language, serving as the x-default entry point. */
+write(resolve(DIST, 'index.html'), document(DEFAULT_LANGUAGE, ''))
+
+const written = []
+for (const route of ROUTES) {
+  for (const item of languages) {
+    const file = resolve(DIST, `${item.code}${route.path ? `/${route.path}` : ''}.html`)
+    write(file, document(item.code, route.path))
+    written.push(localeUrl(item.code, route.path))
+  }
+}
+
+writeFileSync(resolve(DIST, 'sitemap.xml'), sitemap())
+writeTemplate('robots.txt')
+writeTemplate('llms.txt')
+
+const lastmod = contentDate(CONTENT_SOURCES)
+console.log(`prerendered ${SITE_URL}/ and ${written.length} routes; sitemap lastmod ${lastmod ?? '(omitted, no git history)'}`)

@@ -1,4 +1,4 @@
-# M'Caravane Kelibia - https://multicaravane.com
+# M'Caravane Kelibia - {{SITE_URL}}
 
 User-agent: *
 Allow: /
@@ -32,4 +32,4 @@ Allow: /
 User-agent: Bingbot
 Allow: /
 
-Sitemap: https://multicaravane.com/sitemap.xml
+Sitemap: {{SITE_URL}}/sitemap.xml

@@ -1,10 +1,12 @@
 /* Serves dist/ the way Vercel will - cleanUrls, no trailing slash - and checks
    the search-visibility contract end to end. Run after `npm run build`. */
+import { execFileSync } from 'node:child_process'
 import { createServer } from 'node:http'
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { extname, resolve } from 'node:path'
 
 const DIST = resolve('dist')
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://www.multicaravane.com').replace(/\/+$/, '')
 const TYPES = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css',
   '.xml': 'application/xml; charset=utf-8', '.txt': 'text/plain; charset=utf-8',
@@ -39,7 +41,7 @@ const CRAWLERS = ['GPTBot', 'OAI-SearchBot', 'ChatGPT-User', 'ClaudeBot', 'Claud
 const missingCrawlers = CRAWLERS.filter((c) => !robots.body.includes(`User-agent: ${c}`))
 check('robots.txt 200', robots.status === 200)
 check('robots.txt names every AI crawler', missingCrawlers.length === 0, missingCrawlers.join(', '))
-check('robots.txt has absolute sitemap', robots.body.includes('Sitemap: https://multicaravane.com/sitemap.xml'))
+check('robots.txt has absolute sitemap on the canonical host', robots.body.includes(`Sitemap: ${SITE_URL}/sitemap.xml`))
 
 /* 2 - sitemap */
 const sitemap = await get('/sitemap.xml')
@@ -47,6 +49,20 @@ const locs = [...sitemap.body.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1])
 check('sitemap.xml 200', sitemap.status === 200)
 check('sitemap.xml is well-formed', sitemap.body.trim().endsWith('</urlset>') && locs.length > 0, `${locs.length} urls`)
 check('sitemap URLs have no trailing slash', locs.every((l) => !l.endsWith('/')))
+check('sitemap URLs all use the canonical host', locs.every((l) => l.startsWith(`${SITE_URL}/`)),
+  [...new Set(locs.map((l) => new URL(l).host))].join(', '))
+/* Proven, not assumed: each lastmod has to equal the commit date of the files
+   the page is built from. A build-date value would only match by coincidence,
+   and would stop matching tomorrow. */
+const lastmods = [...sitemap.body.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)].map((m) => m[1])
+let commitDate = null
+try {
+  commitDate = execFileSync('git', ['log', '-1', '--format=%cI', '--', 'src/i18n.jsx', 'src/App.jsx'],
+    { encoding: 'utf8' }).trim().slice(0, 10)
+} catch { /* no git history here */ }
+check('sitemap lastmod is the content commit date, not the build date',
+  lastmods.length === 0 ? commitDate === null : lastmods.every((d) => d === commitDate),
+  lastmods.length === 0 ? 'omitted, no git history' : `sitemap ${[...new Set(lastmods)].join(',')} = commit ${commitDate}`)
 for (const loc of locs) {
   const res = await get(new URL(loc).pathname)
   check(`sitemap url 200: ${loc}`, res.status === 200)
@@ -57,6 +73,9 @@ check('sitemap has 4 alternates per url', alternateCount === locs.length * 4, `$
 /* 3 - llms.txt */
 const llms = await get('/llms.txt')
 check('llms.txt 200 as text/plain', llms.status === 200 && llms.type.startsWith('text/plain'), llms.type)
+const llmsHosts = [...new Set([...llms.body.matchAll(/https?:\/\/([^/)\s]+)/g)].map((m) => m[1]))]
+check('llms.txt uses only the canonical host', llmsHosts.every((h) => `https://${h}` === SITE_URL), llmsHosts.join(', '))
+check('sitemap.xml served as application/xml', sitemap.type.startsWith('application/xml'), sitemap.type)
 
 /* 4-7 - the documents */
 const PAGES = { '/': 'en', '/en': 'en', '/fr': 'fr', '/it': 'it' }
@@ -66,7 +85,7 @@ for (const [path, lang] of Object.entries(PAGES)) {
   check(`${path} 200`, page.status === 200)
 
   const canonicals = [...page.body.matchAll(/<link[^>]+rel="canonical"[^>]+href="([^"]+)"/g)].map((m) => m[1])
-  const expected = `https://multicaravane.com/${lang}`
+  const expected = `${SITE_URL}/${lang}`
   check(`${path} exactly one canonical, self-referencing`,
     canonicals.length === 1 && canonicals[0] === expected, canonicals.join(', '))
 

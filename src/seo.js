@@ -4,7 +4,23 @@
    so an in-page language switch updates the same tags. */
 import { translations, languages, DEFAULT_LANGUAGE } from './i18n.jsx'
 
-export const SITE_URL = 'https://multicaravane.com'
+/* The canonical host, from NEXT_PUBLIC_SITE_URL so it is configured in one
+   place rather than repeated across the sitemap, robots.txt, llms.txt and the
+   tags below. The default is the apex's redirect target: https://multicaravane.com
+   answers 308 -> https://www.multicaravane.com, so www is the host that
+   actually serves, and the one every absolute URL here has to name. Any
+   trailing slash is dropped so joins below cannot double up. */
+export const SITE_URL =
+  (import.meta.env?.NEXT_PUBLIC_SITE_URL || 'https://www.multicaravane.com').replace(/\/+$/, '')
+
+/* Every public route, as a path under the language prefix. The site is one
+   page per language today, so there is one entry; adding a route here puts it
+   in the sitemap, in the hreflang set and in the prerender automatically.
+   In-page anchors (#experiences, #gallery, #contact) are not routes and must
+   not appear in a sitemap. */
+export const ROUTES = [
+  { path: '', changefreq: 'monthly' },
+]
 
 /* The hero photograph, the only image in the repo wide enough to serve as a
    social card. */
@@ -23,8 +39,15 @@ export const BUSINESS = {
 
 /* Path-prefixed URLs, no trailing slash. `/` serves the default language as
    the x-default entry point and canonicalises to that language's own URL. */
-export const localeUrl = (code) => `${SITE_URL}/${code}`
+export const localeUrl = (code, path = '') => `${SITE_URL}/${code}${path ? `/${path}` : ''}`
 export const X_DEFAULT_URL = `${SITE_URL}/`
+
+/* The same route in all three languages plus x-default. Identical on every
+   language version of a page, self-reference included. */
+export const alternatesFor = (path = '') => [
+  ...languages.map((item) => ({ hreflang: item.code, href: localeUrl(item.code, path) })),
+  { hreflang: 'x-default', href: X_DEFAULT_URL },
+]
 
 /* 50-60 characters, native in each language, activity plus place. */
 export const META = {
@@ -96,8 +119,8 @@ export function buildJsonLd(code) {
 
 /* Everything <head> needs for one language, as data. The prerender serialises
    it to HTML; the runtime applies it to the live document. */
-export function describeHead(code) {
-  const canonical = localeUrl(code)
+export function describeHead(code, path = '') {
+  const canonical = localeUrl(code, path)
   const { title, description } = META[code]
 
   return {
@@ -123,10 +146,7 @@ export function describeHead(code) {
     ],
     /* The same four alternates on every language version, self-reference
        included, which is what Google requires for the set to be reciprocal. */
-    alternates: [
-      ...languages.map((item) => ({ hreflang: item.code, href: localeUrl(item.code) })),
-      { hreflang: 'x-default', href: X_DEFAULT_URL },
-    ],
+    alternates: alternatesFor(path),
     jsonLd: buildJsonLd(code),
   }
 }
