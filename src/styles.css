@@ -380,13 +380,16 @@ svg { display: block; fill: none; stroke: currentColor; stroke-width: 1.5; strok
   .hero-actions { flex-direction: column; align-items: stretch; gap: 10px; }
   .hero-actions .primary-button, .hero-actions .secondary-button { width: 100%; height: auto; padding: 12px 14px; font-size: .64rem; letter-spacing: .1em; line-height: 1.35; text-align: center; }
   /* Narrower than the 64% of the desktop panel: the width the copy needs to
-     stay clear of the curve has to come from somewhere. */
-  .hero-visual { width: 56%; }
+     stay clear of the curve has to come from somewhere. The panel takes back
+     what it can in the other direction - full bleed top and bottom, losing
+     the 10px strips the desktop hero keeps, so it runs from the top of the
+     screen behind the header down to the section edge. */
+  .hero-visual { width: 56%; inset: 0 0 0 auto; }
   /* The 1.112 horizontal stretch is tuned to the proportions of the desktop
-     panel; on this one it is just a distorted photo. The panel is a tall,
-     narrow slice of a landscape frame at this width, so cover zooms a long
-     way in - 62% across lands the crop on the riders rather than on open sea. */
-  .hero-frame img { width: 100%; scale: none; transform-origin: center; object-position: 62% center; }
+     panel; on this one it is just a distorted photo. Scaled up evenly instead:
+     the panel cannot widen without crowding the copy, so the riders are made
+     to read larger inside it. 58% across holds them in frame as it zooms. */
+  .hero-frame img { width: 100%; scale: 1.22; transform-origin: center; object-position: 58% center; }
   .scroll-cue { display: none; }
   .experiences { padding: 66px 20px 70px; }.section-heading { margin-bottom: 30px; }.section-heading > p:last-child br { display: none; }
   .activity-grid { grid-template-columns: 1fr; gap: 25px; max-width: 560px; }.activity-card { aspect-ratio: 1.45 / 1; --card-radius: 34px 34px 34px 88px; }.activity-card-content { padding: 26px 22px 22px 26px; }.activity-card-content h3 { max-width: 74%; }
